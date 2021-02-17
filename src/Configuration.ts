@@ -14,14 +14,14 @@ import {
 import { CensorOptions, CensorOptionsConfig, CensorType } from './CensorBar';
 
 export interface Configuration {
+  censoring: CensorOptions;
   enable: boolean;
   languages: string[];
-  censoring: CensorOptions;
 }
 
 export interface CensoringKeys {
-  selector: DocumentSelector;
   keys: string[];
+  selector: DocumentSelector;
 }
 
 export const defaults: Configuration = {

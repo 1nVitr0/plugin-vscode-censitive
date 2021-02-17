@@ -7,12 +7,10 @@ import {
   TextDocument,
   FileSystemWatcher,
   RelativePattern,
-  languages,
   Uri,
   WorkspaceFolder,
 } from 'vscode';
 import getConfig, {
-  censorKeys,
   Configuration,
   getCensorOptions,
   initConfig,

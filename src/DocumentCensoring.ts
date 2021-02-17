@@ -4,9 +4,6 @@ import { censorKeys, getCensoredKeys } from './Configuration';
 
 export default class DocumentCensoring {
   public readonly document: TextDocument;
-  private _disposed: boolean = false;
-  private listener: Disposable;
-  private censorBar: CensorBar;
 
   private static codeLanguages = [
     'coffeescript',
@@ -39,18 +36,9 @@ export default class DocumentCensoring {
     'vue-html',
   ];
 
-  public static buildCensorKeyRegexGeneric(keys: string[]) {
-    const keyExpression = `(['"]?(?:${keys.join('|')})['"]?[\\t ]*:?[:=][\\t ]*)`;
-    const valueExpression = '([\'"]([^\\s](?:[^\\v\\r\\n,;\'"]|\\\\\'|\\\\")*)[\'"]?|([^\\s][^\\v\\r\\n,;]*))';
-    return new RegExp(`${keyExpression}${valueExpression}(?:[\\v\\r\\n,;]|$)`, 'gi');
-  }
-
-  public static buildCensorKeyRegexCode(keys: string[]) {
-    const keyExpression = `(['"]?(?:${keys.join('|')})['"]?[\\t ]*[:=][\\t ]*)`;
-    const valueExpression =
-      '([\'"`]([^\\s](?:[^\\v\\r\\n,;\'"]|\\\\\'|\\\\"|\\\\`)*)[\'"`]?|([^\\s][^a-z_\\s][^\\v\\r\\n,;]*))';
-    return new RegExp(`${keyExpression}${valueExpression}(?:[\\v\\r\\n,;]|$)`, 'gi');
-  }
+  private _disposed: boolean = false;
+  private censorBar: CensorBar;
+  private listener: Disposable;
 
   public constructor(document: TextDocument, censorOptions: CensorOptions) {
     this.document = document;
@@ -62,33 +50,23 @@ export default class DocumentCensoring {
     return this._disposed;
   }
 
-  private getCensorRegex(keys: string[], languageId?: string): RegExp {
-    if (languageId && DocumentCensoring.codeLanguages.indexOf(languageId) > -1)
-      return DocumentCensoring.buildCensorKeyRegexCode(keys);
-
-    return DocumentCensoring.buildCensorKeyRegexGeneric(keys);
+  public static buildCensorKeyRegexCode(keys: string[]) {
+    const keyExpression = `(['"]?(?:${keys.join('|')})['"]?[\\t ]*[:=][\\t ]*)`;
+    const valueExpression =
+      '([\'"`]([^\\s](?:[^\\v\\r\\n,;\'"]|\\\\\'|\\\\"|\\\\`)*)[\'"`]?|([^\\s][^a-z_\\s][^\\v\\r\\n,;]*))';
+    return new RegExp(`${keyExpression}${valueExpression}(?:[\\v\\r\\n,;]|$)`, 'gi');
   }
 
-  private async getCensoredRanges(text: string): Promise<Range[]> {
-    const keys = getCensoredKeys(this.document);
-    if (!keys.length) return [];
+  public static buildCensorKeyRegexGeneric(keys: string[]) {
+    const keyExpression = `(['"]?(?:${keys.join('|')})['"]?[\\t ]*:?[:=][\\t ]*)`;
+    const valueExpression = '([\'"]([^\\s](?:[^\\v\\r\\n,;\'"]|\\\\\'|\\\\")*)[\'"]?|([^\\s][^\\v\\r\\n,;]*))';
+    return new RegExp(`${keyExpression}${valueExpression}(?:[\\v\\r\\n,;]|$)`, 'gi');
+  }
 
-    const regex = this.getCensorRegex(keys, this.document.languageId);
-
-    let currentMatch = regex.exec(text);
-    const ranges: Range[] = [];
-
-    while (currentMatch !== null) {
-      const valueOffset = currentMatch[3] ? currentMatch[2]?.indexOf(currentMatch[3]) : 0;
-      const start = currentMatch.index + currentMatch[1].length + valueOffset;
-      const end = start + (currentMatch[3]?.length || currentMatch[4].length);
-
-      ranges.push(new Range(this.document.positionAt(start), this.document.positionAt(end)));
-
-      currentMatch = regex.exec(text);
-    }
-
-    return ranges;
+  public dispose() {
+    this._disposed = true;
+    this.listener?.dispose();
+    this.censorBar.decoration.dispose();
   }
 
   public onUpdate(document = this.document) {
@@ -111,9 +89,31 @@ export default class DocumentCensoring {
       .forEach((editor) => editor.setDecorations(decoration, ranges));
   }
 
-  public dispose() {
-    this._disposed = true;
-    this.listener?.dispose();
-    this.censorBar.decoration.dispose();
+  private getCensorRegex(keys: string[], languageId?: string): RegExp {
+    if (languageId && DocumentCensoring.codeLanguages.indexOf(languageId) > -1)
+      return DocumentCensoring.buildCensorKeyRegexCode(keys);
+
+    return DocumentCensoring.buildCensorKeyRegexGeneric(keys);
+  }
+
+  private async getCensoredRanges(text: string): Promise<Range[]> {
+    const keys = getCensoredKeys(this.document);
+    if (!keys.length) return [];
+
+    const ranges: Range[] = [];
+    const regex = this.getCensorRegex(keys, this.document.languageId);
+
+    let currentMatch = regex.exec(text);
+    while (currentMatch !== null) {
+      const valueOffset = currentMatch[3] ? currentMatch[2]?.indexOf(currentMatch[3]) : 0;
+      const start = currentMatch.index + currentMatch[1].length + valueOffset;
+      const end = start + (currentMatch[3]?.length || currentMatch[4].length);
+
+      ranges.push(new Range(this.document.positionAt(start), this.document.positionAt(end)));
+
+      currentMatch = regex.exec(text);
+    }
+
+    return ranges;
   }
 }

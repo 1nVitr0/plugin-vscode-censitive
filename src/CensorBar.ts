@@ -12,20 +12,20 @@ export enum CensorType {
 }
 
 export interface CensorOptionsBase {
-  prefix?: string;
-  postfix?: string;
-  grow?: boolean;
   border?: string;
+  grow?: boolean;
+  postfix?: string;
+  prefix?: string;
 }
 
 export interface CensorOptionsOpacity extends CensorOptionsBase {
-  type: CensorType.opacity;
   opacity?: string;
+  type: CensorType.opacity;
 }
 
 export interface CensorOptionsColorBar extends CensorOptionsBase {
-  type: CensorType.colorBar;
   color?: string;
+  type: CensorType.colorBar;
 }
 
 export type CensorOptions = CensorOptionsOpacity | CensorOptionsColorBar;
@@ -34,24 +34,30 @@ export interface CensorOptionsConfig extends Omit<CensorOptions, 'type'> {
 }
 
 export default class CensorBar {
-  private _options: CensorOptions;
   private _decoration?: TextEditorDecorationType;
+  private _options: CensorOptions;
 
   public constructor(options: CensorOptions) {
-    this._options = options;
-  }
-
-  public get type() {
-    return this._options.type;
-  }
-
-  public setCensorType(options: CensorOptions) {
     this._options = options;
   }
 
   public get decoration(): TextEditorDecorationType {
     if (!this._decoration) return this.generateDecoration();
     else return this._decoration;
+  }
+
+  public get type() {
+    return this._options.type;
+  }
+
+  private static buildRenderAttachment(contentText?: string): ThemableDecorationAttachmentRenderOptions | undefined {
+    if (!contentText) return undefined;
+
+    return { contentText };
+  }
+
+  public setCensorType(options: CensorOptions) {
+    this._options = options;
   }
 
   private generateDecoration(): TextEditorDecorationType {
@@ -62,12 +68,6 @@ export default class CensorBar {
       border: this._options.border,
       ...this.getDecoratrionParams(),
     }));
-  }
-
-  private static buildRenderAttachment(contentText?: string): ThemableDecorationAttachmentRenderOptions | undefined {
-    if (!contentText) return undefined;
-
-    return { contentText };
   }
 
   private getDecoratrionParams(): DecorationRenderOptions {
