@@ -2,7 +2,7 @@
 
 Censitive censores all your sensitve information, such as database logins, tokens or keys.
 
-![demo for .env files](resources/demo.gif)
+![demo for .env files](https://raw.githubusercontent.com/1nVitr0/plugin-vscode-censitive/main/resources/demo.gif)
 
 *Please be aware that this extension does NOT guarantee that your private information stays hidden!*
 *There is some unavoidable delay between opening a document and the data being censored.*
@@ -18,7 +18,7 @@ When active, the extension will censor all content set in .censitive file by usi
 This means, the .censitive file specifies key regexes and the extension automatically finds values assigned to these keys.
 However as the censoring is based solely on regex, not all assignment formats might be recognized.
 
-![demo for js files](resources/demo_smart.gif)
+![demo for js files](https://raw.githubusercontent.com/1nVitr0/plugin-vscode-censitive/main/resources/demo_smart.gif)
 
 ## Extension Settings
 
@@ -48,6 +48,17 @@ For example:
 
 ## Release Notes
 
-### 1.0.0
+### 0.0.1
 
 Initial release
+
+### 0.1.0
+
+#### Features
+
+- syntax highlighting for `.censitive` file
+
+#### Bugfixes
+
+- fix image visibility on readme
+- fix applying ranges twice on extension install
