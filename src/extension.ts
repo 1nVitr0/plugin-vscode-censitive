@@ -9,6 +9,7 @@ import {
   RelativePattern,
   Uri,
   WorkspaceFolder,
+  extensions,
 } from 'vscode';
 import getConfig, {
   Configuration,
@@ -34,6 +35,7 @@ export function activate(context: ExtensionContext) {
 
   window.onDidChangeVisibleTextEditors(onOpenEditor, null, context.subscriptions);
   workspace.onDidChangeConfiguration(onConfigurationChange, null, context.subscriptions);
+  extensions.onDidChange(onConfigurationChange, null, context.subscriptions);
 
   watchers.push(
     ...(workspace.workspaceFolders?.map((folder) => {
