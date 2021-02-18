@@ -53,23 +53,24 @@ async function loadCensoringConfigFile() {
 
 export async function updateCensoringKeys(workspace: WorkspaceFolder, configFile?: Uri) {
   if (!configFile) {
-    censorKeys[workspace.name] = [];
-    return;
+    return (censorKeys[workspace.name] = []);
   }
 
   try {
     const content = await promisify(readFile)(configFile.fsPath);
-    censorKeys[workspace.name] = content
+    return (censorKeys[workspace.name] = content
       .toString()
       .split(/\r?\n/g)
+      .filter((line) => line.trim() && line[0] !== '#')
       .map((line) => {
         const [pattern, keys] = line.split(':');
         const selector = { pattern: new RelativePattern(workspace, pattern) };
         return { selector, keys: keys.split(/,\s*/g) };
-      });
+      }));
   } catch (e) {
-    censorKeys[workspace.name] = [];
-    window.showErrorMessage('Failed to load censitive config');
+    return (censorKeys[workspace.name] = []);
+    window.showErrorMessage('Failed to load censitive config (see console for more info)');
+    console.error(e);
   }
 }
 

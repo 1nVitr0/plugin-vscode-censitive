@@ -7,6 +7,16 @@
   ],
   "patterns": [
     {
+      "match": "^(#).*$",
+      "comment": "Comment line",
+      "name": "comment.line.censitive",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.comment.censitive"
+        }
+      }
+    },
+    {
       "comment": "Glob Pattern",
       "match": "^((?:[^:](?:\\:)*)+)(:)(.*)$",
       "name": "meta.block.censitive meta.entry.censitive",
