@@ -1,7 +1,7 @@
 {
   "name": "censitive",
   "displayName": "Censitive",
-  "description": "automatically censor sensetive information like passwords and keys",
+  "description": "automatically censor sensitive information like passwords and keys",
   "author": "1nVitr0",
   "publisher": "1nVitr0",
   "repository": {
@@ -14,7 +14,15 @@
     "vscode": "^1.53.0"
   },
   "categories": [
+    "Linters",
     "Other"
+  ],
+  "keywords": [
+    "censor",
+    "hide",
+    "sensitive",
+    "private",
+    "passwords"
   ],
   "activationEvents": [
     "workspaceContains:**/.censitive"

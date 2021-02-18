@@ -28,23 +28,28 @@ This extension contributes the following settings:
 * `censtitive.languages`: An array of language ids which should be censored. "*" to trigger on any language; Prepend language id with "!" to exclude the language (i.e "!typescript", "!javascript")
 * `censtitive.censor`: Visual settings used for censoring
 
-The values being censored can be controlled using a `.censitive` file in the workspace root. It's basic format is:
+The values being censored can be controlled using a `.censitive` file in the workspace root.
+The keys are matched case insensitive: It's basic format is:
 
 ```
-<globPattern>:[keyRegrex]
+# Comment
+<globPattern>:[keyRegex]
 ```
 
 For example:
 
 ```
-.env:.*_KEY,.*_TOKEN,.*_PASSWORD
-*.js:apitoken,.*password
+# Hide the following variables in .env files
+.env:.*_KEY,.*_token,.*_PassWord
+
+# Hide all passwords and api tokens in js and ts files
+*.{js,ts}:apitoken,.*password
 ```
 
 ## Known Issues
 
 - For large documents it will take some time for the values to get censored. This is unavoidable.
-- At the moment there is now option to add custom regexes
+- At the moment there is no option to add custom regular expressions
 
 ## Release Notes
 
