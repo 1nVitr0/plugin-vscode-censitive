@@ -1,0 +1,254 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "censitive",
+  "scopeName": "source.censitive",
+  "fileTypes": [
+    ".censitive"
+  ],
+  "patterns": [
+    {
+      "comment": "Glob Pattern",
+      "match": "^((?:[^:](?:\\:)*)+)(:)(.*)$",
+      "name": "meta.block.censitive meta.entry.censitive",
+      "captures": {
+        "1": {
+          "name": "support.type.file-selector.censitive string.glob.censitive",
+          "patterns": [
+            {
+              "include": "#glob"
+            }
+          ]
+        },
+        "2": {
+          "name": "keyword.operator.assignment.censitive"
+        },
+        "3": {
+          "name": "meta.block.censitive meta.keylist.censitive",
+          "patterns": [
+            {
+              "include": "#key"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "repository": {
+    "key": {
+      "comment": "regex pattern of key to match",
+      "match": "([^,]+)(,)?",
+      "captures": {
+        "1": {
+          "name": "constant.regexp string.regexp",
+          "patterns": [
+            {
+              "include": "#regexp"
+            }
+          ]
+        },
+        "2": {
+          "name": "punctuation.separator.comma.censitive"
+        }
+      }
+    },
+    "glob": {
+      "patterns": [
+        {
+          "name": "meta.group.glob",
+          "begin": "({)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.group.glob"
+            }
+          },
+          "end": "(})",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.group.glob"
+            }
+          },
+          "patterns": [
+            {
+              "match": ",",
+              "name": "punctuation.separator.comma.glob keyword.operator.or.glob"
+            }
+          ]
+        },
+        {
+          "name": "constant.other.character-class.set.glob",
+          "begin": "(\\[(!)?)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.set.glob"
+            },
+            "2": {
+              "name": "keyword.operator.negation.glob"
+            }
+          },
+          "end": "(\\])",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.set.glob"
+            }
+          },
+          "patterns": [
+            {
+              "match": ".-.",
+              "name": "constant.other.character-class.range.glob"
+            }
+          ]
+        },
+        {
+          "match": "!",
+          "name": "keyword.operator.negation.glob"
+        },
+        {
+          "match": "\\*|\\?",
+          "name": "keyword.operator.quantifier.glob"
+        }
+      ]
+    },
+    "regexp": {
+      "patterns": [
+        {
+          "name": "keyword.control.anchor.regexp",
+          "match": "\\\\[bB]|\\^|\\$"
+        },
+        {
+          "name": "keyword.other.back-reference.regexp",
+          "match": "\\\\[1-9]\\d*"
+        },
+        {
+          "name": "keyword.operator.quantifier.regexp",
+          "match": "[?+*]|\\{(\\d+,\\d+|\\d+,|,\\d+|\\d+)\\}\\??"
+        },
+        {
+          "name": "keyword.operator.or.regexp",
+          "match": "\\|"
+        },
+        {
+          "name": "meta.group.assertion.regexp",
+          "begin": "(\\()((\\?=)|(\\?!))",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.group.regexp"
+            },
+            "2": {
+              "name": "punctuation.definition.group.assertion.regexp"
+            },
+            "3": {
+              "name": "meta.assertion.look-ahead.regexp"
+            },
+            "4": {
+              "name": "meta.assertion.negative-look-ahead.regexp"
+            }
+          },
+          "end": "(\\))",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.group.regexp"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#regexp"
+            }
+          ]
+        },
+        {
+          "name": "meta.group.regexp",
+          "begin": "\\((\\?:)?",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.group.regexp"
+            },
+            "1": {
+              "name": "punctuation.definition.group.capture.regexp"
+            }
+          },
+          "end": "\\)",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.group.regexp"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#regexp"
+            }
+          ]
+        },
+        {
+          "name": "constant.other.character-class.set.regexp",
+          "begin": "(\\[)(\\^)?",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.character-class.regexp"
+            },
+            "2": {
+              "name": "keyword.operator.negation.regexp"
+            }
+          },
+          "end": "(\\])",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.character-class.regexp"
+            }
+          },
+          "patterns": [
+            {
+              "name": "constant.other.character-class.range.regexp",
+              "match": "(?:.|(\\\\(?:[0-7]{3}|x\\h\\h|u\\h\\h\\h\\h))|(\\\\c[A-Z])|(\\\\.))\\-(?:[^\\]\\\\]|(\\\\(?:[0-7]{3}|x\\h\\h|u\\h\\h\\h\\h))|(\\\\c[A-Z])|(\\\\.))",
+              "captures": {
+                "1": {
+                  "name": "constant.character.numeric.regexp"
+                },
+                "2": {
+                  "name": "constant.character.control.regexp"
+                },
+                "3": {
+                  "name": "constant.character.escape.backslash.regexp"
+                },
+                "4": {
+                  "name": "constant.character.numeric.regexp"
+                },
+                "5": {
+                  "name": "constant.character.control.regexp"
+                },
+                "6": {
+                  "name": "constant.character.escape.backslash.regexp"
+                }
+              }
+            },
+            {
+              "include": "#regex-character-class"
+            }
+          ]
+        },
+        {
+          "include": "#regex-character-class"
+        }
+      ]
+    },
+    "regex-character-class": {
+      "patterns": [
+        {
+          "name": "constant.other.character-class.regexp",
+          "match": "\\\\[wWsSdDtrnvf]|\\."
+        },
+        {
+          "name": "constant.character.numeric.regexp",
+          "match": "\\\\([0-7]{3}|x\\h\\h|u\\h\\h\\h\\h)"
+        },
+        {
+          "name": "constant.character.control.regexp",
+          "match": "\\\\c[A-Z]"
+        },
+        {
+          "name": "constant.character.escape.backslash.regexp",
+          "match": "\\\\."
+        }
+      ]
+    }
+  }
+}

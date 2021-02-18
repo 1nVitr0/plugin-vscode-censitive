@@ -125,7 +125,22 @@
           ]
         }
       }
-    }
+    },
+    "grammars": [
+      {
+        "language": "censitive",
+        "scopeName": "source.censitive",
+        "path": "./syntaxes/censitive.tmLanguage.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "censitive",
+        "filenames": [
+          ".censitive"
+        ]
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
