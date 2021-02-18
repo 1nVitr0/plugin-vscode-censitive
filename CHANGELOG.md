@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.3](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v0.0.2...v0.0.3) (2021-02-18)
+
+
+### Features
+
+* :sparkler: allow comments in .censitive file ([c74bcb6](https://github.com/1nVitr0/plugin-vscode-censitive/commit/c74bcb64b0fc196f6fdfd5c85b94ce0cb7611ba7))
+
 ### 0.0.2 (2021-02-18)
 
 
