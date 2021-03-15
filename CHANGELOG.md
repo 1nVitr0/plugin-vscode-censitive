@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.0](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v0.0.4...v0.1.0) (2021-03-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* removed opacity settings for censoring
+* languages option no longer available, combined censoring types
+
+### Features
+
+* allow theme values ([dc72017](https://github.com/1nVitr0/plugin-vscode-censitive/commit/dc720179f249b2d9a9e4d912a188ee3798db836a))
+* fast(ish) censoring for large documents ([b748e20](https://github.com/1nVitr0/plugin-vscode-censitive/commit/b748e20d735a6a06afe8b50df7730b1698540dbe))
+
+
+* clean up configuration ([334d051](https://github.com/1nVitr0/plugin-vscode-censitive/commit/334d051a13be9798cbf6b478137e1885fca64060))
+
 ### [0.0.4](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v0.0.3...v0.0.4) (2021-02-18)
 
 ### [0.0.3](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v0.0.2...v0.0.3) (2021-02-18)
