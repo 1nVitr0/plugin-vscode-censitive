@@ -65,18 +65,7 @@ function reactivate() {
 }
 
 function isValidDocument(config: Configuration, document: TextDocument): boolean {
-  const { languageId, uri } = document;
-  let isValid = false;
-
-  if (!config.enable) return isValid;
-
-  if (config.languages.indexOf('*') > -1) isValid = true;
-  if (config.languages.indexOf(languageId) > -1) isValid = true;
-  if (config.languages.indexOf(`!${languageId}`) > -1) isValid = false;
-
-  if (isValid && !isDocumentInCensorConfig(document)) isValid = false;
-
-  return isValid;
+  return config.enable && isDocumentInCensorConfig(document);
 }
 
 async function findOrCreateInstance(document: TextDocument) {
@@ -92,9 +81,9 @@ async function findOrCreateInstance(document: TextDocument) {
 
 async function doCensoring(documents: TextDocument[] = []) {
   if (documents.length) {
-    const instances = await Promise.all(documents.map(findOrCreateInstance));
-
-    return instances.map((instance) => instance.onUpdate());
+    await Promise.all(
+      documents.map((document) => findOrCreateInstance(document).then((instance) => instance.censor(true)))
+    );
   }
 }
 

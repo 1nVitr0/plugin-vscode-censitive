@@ -43,6 +43,11 @@
           "description": "Controls if censoring is enabled",
           "type": "boolean"
         },
+        "censitive.useFastModeMinLines": {
+          "default": 10000,
+          "description": "The lines above which censoring is performed for the visible range first to speed up censoring.",
+          "type": "integer"
+        },
         "censtive.censoring": {
           "type": "object",
           "default": {

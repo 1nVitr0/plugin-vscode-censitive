@@ -15,6 +15,7 @@ import { CensorOptions } from './CensorBar';
 
 export interface Configuration {
   censoring: CensorOptions;
+  useFastModeMinLines: number;
   enable: boolean;
 }
 
@@ -25,6 +26,7 @@ export interface CensoringKeys {
 
 export const defaults: Configuration = {
   enable: true,
+  useFastModeMinLines: 10000,
   censoring: {
     color: 'transparent',
     prefix: '🔒',

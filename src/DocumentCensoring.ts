@@ -1,6 +1,6 @@
-import { Disposable, Range, TextDocument, window, workspace } from 'vscode';
+import { Disposable, Range, TextDocument, TextEditorDecorationType, window, workspace } from 'vscode';
 import CensorBar, { CensorOptions } from './CensorBar';
-import { censorKeys, getCensoredKeys } from './Configuration';
+import getConfig, { getCensoredKeys } from './Configuration';
 
 export default class DocumentCensoring {
   public readonly document: TextDocument;
@@ -69,24 +69,33 @@ export default class DocumentCensoring {
     this.censorBar.decoration.dispose();
   }
 
-  public onUpdate(document = this.document) {
-    if (this.disposed || this.document.uri.toString() !== document.uri.toString()) return;
+  public async censor(fast = false) {
+    const { uri, lineCount } = this.document;
+    const visibleEditors = window.visibleTextEditors.filter(({ document }) => document.uri === uri);
+    const visibleRanges = visibleEditors.reduce<Range[]>((ranges, editor) => [...ranges, ...editor.visibleRanges], []);
 
-    const text = this.document.getText();
-    const version = this.document.version.toString();
-
-    return this.updateCensorBars(text, version);
+    if (fast && lineCount > getConfig().useFastModeMinLines) await this.onUpdate(this.document, visibleRanges);
+    await this.onUpdate(this.document);
   }
 
-  public async updateCensorBars(text: string, version: string) {
-    if (this.document.version.toString() !== version) throw new Error('Document version already has changed');
+  public async updateCensorBars(text: string, version: string, offsetLine = 0) {
+    if (this.document.version.toString() !== version) throw new Error('Document version has already changed');
 
-    const decoration = this.censorBar.decoration;
-    const ranges = await this.getCensoredRanges(text);
+    const ranges = (await this.getCensoredRanges(text)).map(
+      ({ start, end }) => new Range(start.with(start.line + offsetLine), end.with(end.line + offsetLine))
+    );
 
-    window.visibleTextEditors
-      .filter(({ document }) => document.uri === this.document.uri)
-      .forEach((editor) => editor.setDecorations(decoration, ranges));
+    this.applyDecoration(this.censorBar.decoration, ranges);
+  }
+
+  private async onUpdate(document = this.document, ranges?: Range[]) {
+    if (this.disposed || this.document.uri.toString() !== document.uri.toString()) return;
+
+    const version = this.document.version.toString();
+
+    if (!ranges) return await this.updateCensorBars(this.document.getText(), version);
+
+    for (const range of ranges) await this.updateCensorBars(this.document.getText(range), version, range.start.line);
   }
 
   private getCensorRegex(keys: string[], languageId?: string): RegExp {
@@ -94,6 +103,12 @@ export default class DocumentCensoring {
       return DocumentCensoring.buildCensorKeyRegexCode(keys);
 
     return DocumentCensoring.buildCensorKeyRegexGeneric(keys);
+  }
+
+  private applyDecoration(decoration: TextEditorDecorationType, ranges: Range[]) {
+    window.visibleTextEditors
+      .filter(({ document }) => document.uri === this.document.uri)
+      .forEach((editor) => editor.setDecorations(decoration, ranges));
   }
 
   private async getCensoredRanges(text: string): Promise<Range[]> {
