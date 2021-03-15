@@ -28,7 +28,7 @@ export const defaults: Configuration = {
   enable: true,
   useFastModeMinLines: 10000,
   censoring: {
-    color: 'transparent',
+    color: 'theme.editorInfo.background',
     prefix: '🔒',
     border: '2px solid grey',
     grow: true,

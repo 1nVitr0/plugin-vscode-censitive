@@ -12,7 +12,6 @@ export interface CensorOptions {
   grow?: boolean;
   postfix?: string;
   prefix?: string;
-  opacity?: string;
   color?: string;
 }
 
@@ -49,6 +48,11 @@ export default class CensorBar {
   }
 
   private getDecoratrionParams(): DecorationRenderOptions {
-    return { border: this._options.border, backgroundColor: this._options.color, opacity: '0' };
+    const backgroundColor =
+      this._options.color && /^theme./.test(this._options.color)
+        ? new ThemeColor(this._options.color.replace(/^theme./, ''))
+        : this._options.color;
+
+    return { border: this._options.border, backgroundColor, opacity: '0' };
   }
 }

@@ -51,7 +51,7 @@
         "censtive.censoring": {
           "type": "object",
           "default": {
-            "color": "transparent",
+            "color": "theme.editorInfo.background",
             "prefix": "🔒",
             "border": "2px solid grey",
             "grow": true
@@ -78,13 +78,8 @@
             },
             "color": {
               "type": "string",
-              "default": "black",
-              "description": "color of the censor bar"
-            },
-            "opacity": {
-              "type": "string",
-              "default": "0",
-              "description": "opacity of the censored content"
+              "default": "theme.editorInfo.background",
+              "description": "color of the censor bar. use `theme.` prefix to use theme colors (e.g. `theme.foreground`)"
             }
           }
         }
