@@ -43,94 +43,45 @@
           "description": "Controls if censoring is enabled",
           "type": "boolean"
         },
-        "censitive.languages": {
-          "type": "array",
-          "default": [
-            "*"
-          ],
-          "description": "An array of language ids which should be censored. \"*\" to trigger on any language; Prepend language id with \"!\" to exclude the language (i.e \"!typescript\", \"!javascript\")"
-        },
         "censtive.censoring": {
           "type": "object",
           "default": {
-            "type": "colorBar",
+            "color": "transparent",
             "prefix": "🔒",
             "border": "2px solid grey",
             "grow": true
           },
           "description": "Visual settings used for censoring",
-          "anyOf": [
-            {
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "enum": [
-                    "opacity"
-                  ],
-                  "required": true,
-                  "description": "Hide sensitive data by reducing the opacity"
-                },
-                "prefix": {
-                  "type": "string",
-                  "default": "🔒",
-                  "description": "text displayed before the censored content"
-                },
-                "postfix": {
-                  "type": "string",
-                  "description": "text displayed after the censored content"
-                },
-                "grow": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "grow censoring when the text is edited (when disabled single letters might be visible before censored)"
-                },
-                "border": {
-                  "type": "string",
-                  "description": "css border around censored content"
-                },
-                "opacity": {
-                  "type": "string",
-                  "default": "0",
-                  "description": "opacity of the censored content"
-                }
-              }
+          "properties": {
+            "prefix": {
+              "type": "string",
+              "default": "🔒",
+              "description": "text displayed before the censored content"
             },
-            {
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "enum": [
-                    "colorBar"
-                  ],
-                  "required": true,
-                  "description": "Hide sensitive data by blocking it with a colored bar"
-                },
-                "prefix": {
-                  "type": "string",
-                  "default": "🔒",
-                  "description": "text displayed before the censored content"
-                },
-                "postfix": {
-                  "type": "string",
-                  "description": "text displayed after the censored content"
-                },
-                "grow": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "grow censoring when the text is edited (when disabled single letters might be visible before censored)"
-                },
-                "border": {
-                  "type": "string",
-                  "description": "css border around censored content"
-                },
-                "color": {
-                  "type": "string",
-                  "default": "black",
-                  "description": "color of the censor bar"
-                }
-              }
+            "postfix": {
+              "type": "string",
+              "description": "text displayed after the censored content"
+            },
+            "grow": {
+              "type": "boolean",
+              "default": true,
+              "description": "grow censoring when the text is edited (when disabled single letters might be visible before censored)"
+            },
+            "border": {
+              "type": "string",
+              "description": "css border around censored content"
+            },
+            "color": {
+              "type": "string",
+              "default": "black",
+              "description": "color of the censor bar"
+            },
+            "opacity": {
+              "type": "string",
+              "default": "0",
+              "description": "opacity of the censored content"
             }
-          ]
+          }
         }
       }
     },

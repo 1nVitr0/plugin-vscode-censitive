@@ -11,12 +11,11 @@ import {
   WorkspaceConfiguration,
   WorkspaceFolder,
 } from 'vscode';
-import { CensorOptions, CensorOptionsConfig, CensorType } from './CensorBar';
+import { CensorOptions } from './CensorBar';
 
 export interface Configuration {
   censoring: CensorOptions;
   enable: boolean;
-  languages: string[];
 }
 
 export interface CensoringKeys {
@@ -26,10 +25,8 @@ export interface CensoringKeys {
 
 export const defaults: Configuration = {
   enable: true,
-  languages: ['*'],
   censoring: {
-    type: CensorType.colorBar,
-    color: 'black',
+    color: 'transparent',
     prefix: '🔒',
     border: '2px solid grey',
     grow: true,
@@ -52,9 +49,7 @@ async function loadCensoringConfigFile() {
 }
 
 export async function updateCensoringKeys(workspace: WorkspaceFolder, configFile?: Uri) {
-  if (!configFile) {
-    return (censorKeys[workspace.name] = []);
-  }
+  if (!configFile) return (censorKeys[workspace.name] = []);
 
   try {
     const content = await promisify(readFile)(configFile.fsPath);
@@ -79,13 +74,7 @@ export async function updateConfig() {
 }
 
 export function getCensorOptions(): CensorOptions {
-  if (typeof _config?.censoring === 'object') {
-    const parsed = { ..._config?.censoring } as CensorOptionsConfig;
-    return {
-      ...parsed,
-      type: CensorType[parsed.type],
-    };
-  }
+  if (typeof _config?.censoring === 'object') return { ..._config?.censoring } as CensorOptions;
 
   return defaults.censoring;
 }
