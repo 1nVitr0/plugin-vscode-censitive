@@ -1,6 +1,7 @@
 # Censitive
 
 Censitive censores all your sensitve information, such as database logins, tokens or keys.
+*Remember to reload the window after creating a .censitive file.*
 
 ![demo for .env files](https://raw.githubusercontent.com/1nVitr0/plugin-vscode-censitive/main/resources/demo.gif)
 
@@ -25,7 +26,7 @@ However as the censoring is based solely on regex, not all assignment formats mi
 This extension contributes the following settings:
 
 * `censtitive.enable`: enable/disable this extension
-* `censtitive.languages`: An array of language ids which should be censored. "*" to trigger on any language; Prepend language id with "!" to exclude the language (i.e "!typescript", "!javascript")
+* `censitive.useFastModeMinLines`: above this line threshold the document is censored twice: once for the visible range and once for the entire document. This speeds up censoring marginally, but can still be slow
 * `censtitive.censor`: Visual settings used for censoring
 
 The values being censored can be controlled using a `.censitive` file in the workspace root.
@@ -48,5 +49,6 @@ For example:
 
 ## Known Issues
 
-- For large documents it will take some time for the values to get censored. This is unavoidable.
+- For large documents it will take some time for the values to get censored. This is unavoidable due to VS Code processing the document before any extensions.
 - At the moment there is no option to add custom regular expressions
+- The window must be reloaded after creating a new `.censitive` file
