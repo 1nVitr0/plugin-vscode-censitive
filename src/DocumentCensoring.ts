@@ -1,5 +1,16 @@
-import { Disposable, Range, TextDocument, TextEditorDecorationType, window, workspace } from 'vscode';
+import { timeStamp } from 'node:console';
+import {
+  DecorationOptions,
+  Disposable,
+  MarkdownString,
+  Range,
+  TextDocument,
+  TextEditorDecorationType,
+  window,
+  workspace,
+} from 'vscode';
 import CensorBar, { CensorOptions } from './CensorBar';
+import CensoringCodeLensProvider from './CensoringCodeLensProvider';
 import getConfig, { getCensoredKeys } from './Configuration';
 
 export default class DocumentCensoring {
@@ -37,17 +48,38 @@ export default class DocumentCensoring {
   ];
 
   private _disposed: boolean = false;
+  private visibleRanges: Range[] = [];
   private censorBar: CensorBar;
+  private codeLensProvider: CensoringCodeLensProvider;
+  private codeLensDisposable?: Disposable;
   private listener: Disposable;
 
-  public constructor(document: TextDocument, censorOptions: CensorOptions) {
+  public constructor(
+    document: TextDocument,
+    censorOptions: CensorOptions,
+    codeLensProvider: CensoringCodeLensProvider
+  ) {
     this.document = document;
     this.censorBar = new CensorBar(censorOptions);
+    this.codeLensProvider = codeLensProvider;
     this.listener = workspace.onDidChangeTextDocument(({ document }) => this.onUpdate(document));
   }
 
   public get disposed() {
     return this._disposed;
+  }
+
+  public addVisibleRange(range: Range): void {
+    this.visibleRanges.push(range);
+  }
+
+  public removeVisibleRange(range: Range): void {
+    const i = this.visibleRanges.findIndex((compare) => range.isEqual(compare));
+    if (i >= 0) this.visibleRanges.splice(i, 1);
+  }
+
+  public clearVisibleRanges(): void {
+    this.visibleRanges = [];
   }
 
   public static buildCensorKeyRegexCode(keys: string[]) {
@@ -66,6 +98,7 @@ export default class DocumentCensoring {
   public dispose() {
     this._disposed = true;
     this.listener?.dispose();
+    this.codeLensDisposable?.dispose();
     this.censorBar.decoration.dispose();
   }
 
@@ -85,7 +118,11 @@ export default class DocumentCensoring {
       ({ start, end }) => new Range(start.with(start.line + offsetLine), end.with(end.line + offsetLine))
     );
 
-    this.applyDecoration(this.censorBar.decoration, ranges);
+    this.applyDecoration(
+      this.censorBar.decoration,
+      ranges.filter((range) => !this.visibleRanges.some((visible) => visible.isEqual(range)))
+    );
+    this.codeLensDisposable = this.codeLensProvider.setCensoredRanges(this.document, ranges, this.visibleRanges);
   }
 
   private async onUpdate(document = this.document, ranges?: Range[]) {
