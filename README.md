@@ -21,6 +21,8 @@ However as the censoring is based solely on regex, not all assignment formats mi
 
 ![demo for js files](https://raw.githubusercontent.com/1nVitr0/plugin-vscode-censitive/main/resources/demo_smart.gif)
 
+Two code actions "Copy to Clipboard" and "Show Censored Text" are provided for convenient access to the censored text.
+
 ## Extension Settings
 
 This extension contributes the following settings:
@@ -28,6 +30,7 @@ This extension contributes the following settings:
 * `censtitive.enable`: enable/disable this extension
 * `censitive.useFastModeMinLines`: above this line threshold the document is censored twice: once for the visible range and once for the entire document. This speeds up censoring marginally, but can still be slow
 * `censtitive.censor`: Visual settings used for censoring
+* `censtitive.showTimeoutSeconds`: Controls the time the password is shown after clicking on 'Show Censored Text'
 
 The values being censored can be controlled using a `.censitive` file in the workspace root.
 The keys are matched case insensitive: It's basic format is:
