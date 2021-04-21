@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.0.0](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v0.1.0...v1.0.0) (2021-04-21)
+
+
+### Features
+
+* add code actions for copying and showing ([9c9b401](https://github.com/1nVitr0/plugin-vscode-censitive/commit/9c9b4010c07aa0cb3d42977b0d25424023ec0050))
+* add configuration for display time ([d4cd205](https://github.com/1nVitr0/plugin-vscode-censitive/commit/d4cd20514a5ea4929b6dc81b1d71a113735b46cc))
+
 ## [0.1.0](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v0.0.4...v0.1.0) (2021-03-15)
 
 
