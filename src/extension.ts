@@ -10,7 +10,11 @@ import {
   Uri,
   WorkspaceFolder,
   extensions,
+  Range,
+  env,
+  languages,
 } from 'vscode';
+import CensoringCodeLensProvider from './CensoringCodeLensProvider';
 import getConfig, {
   Configuration,
   getCensorOptions,
@@ -22,14 +26,40 @@ import getConfig, {
 } from './Configuration';
 import DocumentCensoring from './DocumentCensoring';
 
+let censoringCodeLensProvider: CensoringCodeLensProvider;
 let instanceMap: DocumentCensoring[] = [];
 let watchers: FileSystemWatcher[] = [];
 
 export function activate(context: ExtensionContext) {
   context.subscriptions.push(
+    languages.registerCodeLensProvider(
+      { pattern: '**/*' },
+      (censoringCodeLensProvider = new CensoringCodeLensProvider())
+    ),
     commands.registerCommand('censitive.toggleCensoring', () => {
       const enabled = toggleEnable();
       window.showInformationMessage(`Censoring ${enabled ? 'enabled' : 'disabled'}.`);
+    }),
+    commands.registerTextEditorCommand('censitive.copyCensoredRange', (editor, _, range?: Range) => {
+      if (!range)
+        return window.showErrorMessage('No censored field found. This command should not be triggered manually.');
+
+      const text = editor.document.getText(range);
+      env.clipboard.writeText(text);
+      window.showInformationMessage('Censored field copied to clipboard!');
+    }),
+    commands.registerTextEditorCommand('censitive.displayCensoredRange', (editor, _, range?: Range) => {
+      if (!range)
+        return window.showErrorMessage('No censored field found. This command should not be triggered manually.');
+
+      findOrCreateInstance(editor.document).then((censoring) => {
+        censoring.addVisibleRange(range);
+        censoring.censor();
+        setTimeout(() => {
+          censoring.removeVisibleRange(range);
+          censoring.censor();
+        }, getConfig().showTimeoutSeconds * 1000);
+      });
     })
   );
 
@@ -72,7 +102,7 @@ async function findOrCreateInstance(document: TextDocument) {
   const found = instanceMap.find(({ document: refDoc }) => refDoc === document);
 
   if (!found) {
-    const instance = new DocumentCensoring(document, getCensorOptions());
+    const instance = new DocumentCensoring(document, getCensorOptions(), censoringCodeLensProvider);
     instanceMap.push(instance);
   }
 

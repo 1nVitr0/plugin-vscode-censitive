@@ -15,6 +15,7 @@ import { CensorOptions } from './CensorBar';
 
 export interface Configuration {
   censoring: CensorOptions;
+  showTimeoutSeconds: number;
   useFastModeMinLines: number;
   enable: boolean;
 }
@@ -27,6 +28,7 @@ export interface CensoringKeys {
 export const defaults: Configuration = {
   enable: true,
   useFastModeMinLines: 10000,
+  showTimeoutSeconds: 10,
   censoring: {
     color: 'theme.editorInfo.background',
     prefix: '🔒',
@@ -65,9 +67,9 @@ export async function updateCensoringKeys(workspace: WorkspaceFolder, configFile
         return { selector, keys: keys.split(/,\s*/g) };
       }));
   } catch (e) {
-    return (censorKeys[workspace.name] = []);
     window.showErrorMessage('Failed to load censitive config (see console for more info)');
     console.error(e);
+    return (censorKeys[workspace.name] = []);
   }
 }
 
