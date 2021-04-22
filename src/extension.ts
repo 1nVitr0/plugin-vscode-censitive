@@ -14,20 +14,13 @@ import {
   env,
   languages,
 } from 'vscode';
-import CensoringCodeLensProvider from './CensoringCodeLensProvider';
-import getConfig, {
-  Configuration,
-  getCensorOptions,
-  initConfig,
-  isDocumentInCensorConfig,
-  toggleEnable,
-  updateCensoringKeys,
-  updateConfig,
-} from './Configuration';
-import DocumentCensoring from './DocumentCensoring';
+import CensoringCodeLensProvider from './providers/CensoringCodeLensProvider';
+import CensoringProvider from './providers/CensoringProvider';
+import ConfigurationProvider, { Configuration } from './providers/ConfigurationProvider';
 
+let configurationProvider = new ConfigurationProvider();
 let censoringCodeLensProvider: CensoringCodeLensProvider;
-let instanceMap: DocumentCensoring[] = [];
+let instanceMap: CensoringProvider[] = [];
 let watchers: FileSystemWatcher[] = [];
 
 export function activate(context: ExtensionContext) {
@@ -37,7 +30,7 @@ export function activate(context: ExtensionContext) {
       (censoringCodeLensProvider = new CensoringCodeLensProvider())
     ),
     commands.registerCommand('censitive.toggleCensoring', () => {
-      const enabled = toggleEnable();
+      const enabled = configurationProvider.toggleEnable();
       window.showInformationMessage(`Censoring ${enabled ? 'enabled' : 'disabled'}.`);
     }),
     commands.registerTextEditorCommand('censitive.copyCensoredRange', (editor, _, range?: Range) => {
@@ -58,7 +51,7 @@ export function activate(context: ExtensionContext) {
         setTimeout(() => {
           censoring.removeVisibleRange(range);
           censoring.censor();
-        }, getConfig().showTimeoutSeconds * 1000);
+        }, configurationProvider.getConfig().showTimeoutSeconds * 1000);
       });
     })
   );
@@ -76,7 +69,7 @@ export function activate(context: ExtensionContext) {
     }) || [])
   );
 
-  initConfig().then(() => onOpenEditor(window.visibleTextEditors));
+  ConfigurationProvider.init().then(() => onOpenEditor(window.visibleTextEditors));
 }
 
 export function deactivate() {
@@ -95,14 +88,18 @@ function reactivate() {
 }
 
 function isValidDocument(config: Configuration, document: TextDocument): boolean {
-  return config.enable && isDocumentInCensorConfig(document);
+  return config.enable && configurationProvider.isDocumentInCensorConfig(document);
 }
 
 async function findOrCreateInstance(document: TextDocument) {
   const found = instanceMap.find(({ document: refDoc }) => refDoc === document);
 
   if (!found) {
-    const instance = new DocumentCensoring(document, getCensorOptions(), censoringCodeLensProvider);
+    const instance = new CensoringProvider(
+      document,
+      configurationProvider.getCensorOptions(),
+      censoringCodeLensProvider
+    );
     instanceMap.push(instance);
   }
 
@@ -118,11 +115,11 @@ async function doCensoring(documents: TextDocument[] = []) {
 }
 
 function onConfigurationChange() {
-  updateConfig().then(reactivate);
+  ConfigurationProvider.updateConfig().then(reactivate);
 }
 
 function onCensorConfigChanged(folder: WorkspaceFolder, uri: Uri) {
-  updateCensoringKeys(folder, uri);
+  ConfigurationProvider.updateCensoringKeys(folder, uri);
   onOpenEditor(window.visibleTextEditors);
 }
 
@@ -134,7 +131,7 @@ function onOpenEditor(editors: TextEditor[]) {
   forDisposal.forEach((instance) => instance.dispose());
 
   // enable highlight in active editors
-  const validDocuments = documents.filter((doc) => isValidDocument(getConfig(), doc));
+  const validDocuments = documents.filter((doc) => isValidDocument(configurationProvider.getConfig(), doc));
 
   doCensoring(validDocuments);
 }

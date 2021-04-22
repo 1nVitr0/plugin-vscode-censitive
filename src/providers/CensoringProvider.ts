@@ -1,19 +1,9 @@
-import { timeStamp } from 'node:console';
-import {
-  DecorationOptions,
-  Disposable,
-  MarkdownString,
-  Range,
-  TextDocument,
-  TextEditorDecorationType,
-  window,
-  workspace,
-} from 'vscode';
-import CensorBar, { CensorOptions } from './CensorBar';
+import { Disposable, Range, TextDocument, TextEditorDecorationType, window, workspace } from 'vscode';
+import CensorBar, { CensorOptions } from '../decorations/CensorBar';
 import CensoringCodeLensProvider from './CensoringCodeLensProvider';
-import getConfig, { getCensoredKeys } from './Configuration';
+import ConfigurationProvider from './ConfigurationProvider';
 
-export default class DocumentCensoring {
+export default class CensoringProvider {
   public readonly document: TextDocument;
 
   private static codeLanguages = [
@@ -52,6 +42,7 @@ export default class DocumentCensoring {
   private censorBar: CensorBar;
   private codeLensProvider: CensoringCodeLensProvider;
   private codeLensDisposable?: Disposable;
+  private configurationProvider = new ConfigurationProvider();
   private listener: Disposable;
 
   public constructor(
@@ -107,7 +98,8 @@ export default class DocumentCensoring {
     const visibleEditors = window.visibleTextEditors.filter(({ document }) => document.uri === uri);
     const visibleRanges = visibleEditors.reduce<Range[]>((ranges, editor) => [...ranges, ...editor.visibleRanges], []);
 
-    if (fast && lineCount > getConfig().useFastModeMinLines) await this.onUpdate(this.document, visibleRanges);
+    if (fast && lineCount > this.configurationProvider.getConfig().useFastModeMinLines)
+      await this.onUpdate(this.document, visibleRanges);
     await this.onUpdate(this.document);
   }
 
@@ -136,10 +128,10 @@ export default class DocumentCensoring {
   }
 
   private getCensorRegex(keys: string[], languageId?: string): RegExp {
-    if (languageId && DocumentCensoring.codeLanguages.indexOf(languageId) > -1)
-      return DocumentCensoring.buildCensorKeyRegexCode(keys);
+    if (languageId && CensoringProvider.codeLanguages.indexOf(languageId) > -1)
+      return CensoringProvider.buildCensorKeyRegexCode(keys);
 
-    return DocumentCensoring.buildCensorKeyRegexGeneric(keys);
+    return CensoringProvider.buildCensorKeyRegexGeneric(keys);
   }
 
   private applyDecoration(decoration: TextEditorDecorationType, ranges: Range[]) {
@@ -149,7 +141,7 @@ export default class DocumentCensoring {
   }
 
   private async getCensoredRanges(text: string): Promise<Range[]> {
-    const keys = getCensoredKeys(this.document);
+    const keys = this.configurationProvider.getCensoredKeys(this.document);
     if (!keys.length) return [];
 
     const ranges: Range[] = [];
