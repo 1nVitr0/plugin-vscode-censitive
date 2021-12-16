@@ -5,7 +5,7 @@ import {
   ThemableDecorationAttachmentRenderOptions,
   ThemeColor,
   window,
-} from 'vscode';
+} from "vscode";
 
 export interface CensorOptions {
   border?: string;
@@ -38,21 +38,28 @@ export default class CensorBar {
     this._options = options;
   }
 
+  public regenerateDecoration() {
+    const dispose = this._decoration && this._decoration.dispose;
+    this._decoration = undefined;
+    this.generateDecoration();
+    return dispose;
+  }
+
   private generateDecoration(): TextEditorDecorationType {
     return (this._decoration = window.createTextEditorDecorationType({
       before: CensorBar.buildRenderAttachment(this._options.prefix),
       after: CensorBar.buildRenderAttachment(this._options.postfix),
       rangeBehavior: this._options.grow ? DecorationRangeBehavior.OpenOpen : DecorationRangeBehavior.ClosedClosed,
-      ...this.getDecoratrionParams(),
+      ...this.getDecorationParams(),
     }));
   }
 
-  private getDecoratrionParams(): DecorationRenderOptions {
+  private getDecorationParams(): DecorationRenderOptions {
     const backgroundColor =
       this._options.color && /^theme./.test(this._options.color)
-        ? new ThemeColor(this._options.color.replace(/^theme./, ''))
+        ? new ThemeColor(this._options.color.replace(/^theme./, ""))
         : this._options.color;
 
-    return { border: this._options.border, backgroundColor, opacity: '0' };
+    return { border: this._options.border, backgroundColor, opacity: "0" };
   }
 }

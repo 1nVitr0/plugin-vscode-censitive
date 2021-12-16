@@ -13,10 +13,10 @@ import {
   Range,
   env,
   languages,
-} from 'vscode';
-import CensoringCodeLensProvider from './providers/CensoringCodeLensProvider';
-import CensoringProvider from './providers/CensoringProvider';
-import ConfigurationProvider, { Configuration } from './providers/ConfigurationProvider';
+} from "vscode";
+import CensoringCodeLensProvider from "./providers/CensoringCodeLensProvider";
+import CensoringProvider from "./providers/CensoringProvider";
+import ConfigurationProvider, { Configuration } from "./providers/ConfigurationProvider";
 
 let configurationProvider = new ConfigurationProvider();
 let censoringCodeLensProvider: CensoringCodeLensProvider;
@@ -26,31 +26,31 @@ let watchers: FileSystemWatcher[] = [];
 export function activate(context: ExtensionContext) {
   context.subscriptions.push(
     languages.registerCodeLensProvider(
-      { pattern: '**/*' },
+      { pattern: "**/*" },
       (censoringCodeLensProvider = new CensoringCodeLensProvider())
     ),
-    commands.registerCommand('censitive.toggleCensoring', () => {
+    commands.registerCommand("censitive.toggleCensoring", () => {
       const enabled = configurationProvider.toggleEnable();
-      window.showInformationMessage(`Censoring ${enabled ? 'enabled' : 'disabled'}.`);
+      window.showInformationMessage(`Censoring ${enabled ? "enabled" : "disabled"}.`);
     }),
-    commands.registerTextEditorCommand('censitive.copyCensoredRange', (editor, _, range?: Range) => {
+    commands.registerTextEditorCommand("censitive.copyCensoredRange", (editor, _, range?: Range) => {
       if (!range)
-        return window.showErrorMessage('No censored field found. This command should not be triggered manually.');
+        return window.showErrorMessage("No censored field found. This command should not be triggered manually.");
 
       const text = editor.document.getText(range);
       env.clipboard.writeText(text);
-      window.showInformationMessage('Censored field copied to clipboard!');
+      window.showInformationMessage("Censored field copied to clipboard!");
     }),
-    commands.registerTextEditorCommand('censitive.displayCensoredRange', (editor, _, range?: Range) => {
+    commands.registerTextEditorCommand("censitive.displayCensoredRange", (editor, _, range?: Range) => {
       if (!range)
-        return window.showErrorMessage('No censored field found. This command should not be triggered manually.');
+        return window.showErrorMessage("No censored field found. This command should not be triggered manually.");
 
       findOrCreateInstance(editor.document).then((censoring) => {
         censoring.addVisibleRange(range);
-        censoring.censor();
+        censoring.applyCensoredRanges();
         setTimeout(() => {
           censoring.removeVisibleRange(range);
-          censoring.censor();
+          censoring.applyCensoredRanges();
         }, configurationProvider.getConfig().showTimeoutSeconds * 1000);
       });
     })
@@ -62,7 +62,7 @@ export function activate(context: ExtensionContext) {
 
   watchers.push(
     ...(workspace.workspaceFolders?.map((folder) => {
-      const configWatcher = workspace.createFileSystemWatcher(new RelativePattern(folder, '.censitive'));
+      const configWatcher = workspace.createFileSystemWatcher(new RelativePattern(folder, ".censitive"));
       configWatcher.onDidChange(onCensorConfigChanged.bind(onCensorConfigChanged, folder));
 
       return configWatcher;
