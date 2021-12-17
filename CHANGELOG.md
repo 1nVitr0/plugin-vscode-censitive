@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.1.0](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.0.2...v1.1.0) (2021-12-17)
+
+
+### Features
+
+* allow censoring of entire files ([fd4d60b](https://github.com/1nVitr0/plugin-vscode-censitive/commit/fd4d60bb1a43e71d8adcc1b089fd70cea4e1f647))
+* censor multiline values ([8c1418b](https://github.com/1nVitr0/plugin-vscode-censitive/commit/8c1418b7dd1dc58e52a0a62f6d1a406603d3acbc))
+
+
+### Bug Fixes
+
+* fix caching on multiline edits ([a5377f5](https://github.com/1nVitr0/plugin-vscode-censitive/commit/a5377f59855719d330a0c0bf672e072c64c25d6b))
+
 ### [1.0.2](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.0.1...v1.0.2) (2021-12-17)
 
 
