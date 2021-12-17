@@ -5,12 +5,15 @@ import {
   TextDocument,
   TextDocumentContentChangeEvent,
   TextEditorDecorationType,
+  TextLine,
   window,
   workspace,
 } from "vscode";
 import CensorBar, { CensorOptions } from "../decorations/CensorBar";
 import CensoringCodeLensProvider from "./CensoringCodeLensProvider";
 import ConfigurationProvider from "./ConfigurationProvider";
+
+type RegexKeyValueParts = { key: string; assignment: string; value: string };
 
 export default class CensoringProvider {
   public readonly document: TextDocument;
@@ -45,6 +48,10 @@ export default class CensoringProvider {
     "vue",
     "vue-html",
   ];
+  private static assignmentRegex: Record<string, string> = {
+    default: "[\\t ]*[:=]+[\\t ]*",
+    yaml: "[\\t ]*:[\\t ]*(?!>|\\|)",
+  };
 
   private _disposed: boolean = false;
   private censoredRanges: Range[] = [];
@@ -54,6 +61,31 @@ export default class CensoringProvider {
   private codeLensDisposable?: Disposable;
   private configurationProvider = new ConfigurationProvider();
   private listeners: Disposable[] = [];
+
+  public static buildCensorKeyRegexCode(keys: string[], languageId?: string): RegExp {
+    const { key, assignment, value } = CensoringProvider.buildSensorKeyRegex(keys, languageId);
+    return new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
+  }
+
+  public static buildCensorKeyRegexGeneric(keys: string[], languageId?: string) {
+    const additionalValues = ["([^\\s][^\\v\\r\\n,;]*)"];
+    const { key, assignment, value } = CensoringProvider.buildSensorKeyRegex(keys, languageId, ...additionalValues);
+    return new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
+  }
+
+  public static buildSensorKeyRegex(
+    keys: string[],
+    languageId: string = "default",
+    ...additionalValueExpressions: string[]
+  ): RegexKeyValueParts {
+    const assignment = CensoringProvider.assignmentRegex[languageId] || CensoringProvider.assignmentRegex["default"];
+    const escapedKeys = keys.map((key) => key.replace(/(?<!\\)\.\*/g, "[^\\s]*"));
+    const escapedValues = ["'([^']+|\\\\')*'", '"([^"]+|\\\\")*"', "`([^`]+|\\\\`)*`", ...additionalValueExpressions];
+
+    const key = `(?:${escapedKeys.join("|")})`;
+    const value = `(${escapedValues.join("|")})`;
+    return { key, assignment, value };
+  }
 
   public constructor(
     document: TextDocument,
@@ -83,23 +115,6 @@ export default class CensoringProvider {
 
   public clearVisibleRanges(): void {
     this.visibleRanges = [];
-  }
-
-  public static buildCensorKeyRegexCode(keys: string[]) {
-    return CensoringProvider.buildSensorKeyRegex(keys);
-  }
-
-  public static buildCensorKeyRegexGeneric(keys: string[]) {
-    return CensoringProvider.buildSensorKeyRegex(keys, "([^\\s][^\\v\\r\\n,;]*)");
-  }
-
-  public static buildSensorKeyRegex(keys: string[], ...additionalValueExpressions: string[]): RegExp {
-    const escapedKeys = keys.map((key) => key.replace(/(?<!\\)\.\*/g, "[^\\s]*"));
-    const escapedValues = ["'([^']+|\\\\')*'", '"([^"]+|\\\\")*"', "`([^`]+|\\\\`)*`", ...additionalValueExpressions];
-
-    const keyExpression = `(['"]?(?:${escapedKeys.join("|")})['"]?[\\t ]*[:=]+[\\t ]*)`;
-    const valueExpression = `(${escapedValues.join("|")})`;
-    return new RegExp(`${keyExpression}${valueExpression}(?:[\\s\\r\\n,;]|$)`, "gi");
   }
 
   public dispose() {
@@ -161,15 +176,22 @@ export default class CensoringProvider {
         // Expand range to re-evaluate incomplete censor key-value pairs
         const { range, text } = change.range.isSingleLine ? document.lineAt(change.range.start.line) : change;
         for (let i = this.censoredRanges.length - 1; i >= 0; i--) {
-          if (range.contains(this.censoredRanges[i])) {
+          if (range.intersection(this.censoredRanges[i])) {
             this.censoredRanges.splice(i, 1);
             deletions++;
           }
         }
         promises.push(this.updateCensoredRanges(text, version, range.start.translate(lineOffset)));
-        lineOffset += text.split("\n").length - (range.end.line - range.start.line + 1);
+        lineOffset += change.text.split("\n").length - (range.end.line - range.start.line + 1);
+        for (let i = 0; i < this.censoredRanges.length; i++) {
+          const range = this.censoredRanges[i];
+          if (range.start.line > change.range.end.line) {
+            this.censoredRanges[i] = new Range(range.start.translate(lineOffset), range.end.translate(lineOffset));
+          }
+        }
       }
     } else {
+      this.censoredRanges = [];
       promises.push(this.updateCensoredRanges(this.document.getText(), version));
     }
 
@@ -179,8 +201,8 @@ export default class CensoringProvider {
 
   private getCensorRegex(keys: string[], languageId?: string): RegExp {
     if (languageId && CensoringProvider.codeLanguages.indexOf(languageId) > -1)
-      return CensoringProvider.buildCensorKeyRegexCode(keys);
-    else return CensoringProvider.buildCensorKeyRegexGeneric(keys);
+      return CensoringProvider.buildCensorKeyRegexCode(keys, languageId);
+    else return CensoringProvider.buildCensorKeyRegexGeneric(keys, languageId);
   }
 
   private applyDecoration(decoration: TextEditorDecorationType, ranges: Range[]) {
@@ -190,12 +212,13 @@ export default class CensoringProvider {
   }
 
   private async getCensoredRanges(text: string, offset?: Position): Promise<Range[]> {
+    const { languageId } = this.document;
     const keys = this.configurationProvider.getCensoredKeys(this.document);
     if (!keys.length) return [];
 
     const documentOffset = offset ? this.document.offsetAt(offset) : 0;
     const ranges: Range[] = [];
-    const regex = this.getCensorRegex(keys, this.document.languageId);
+    const regex = this.getCensorRegex(keys, languageId);
 
     let currentMatch = regex.exec(text);
     while (currentMatch !== null) {
