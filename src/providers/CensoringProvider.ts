@@ -144,6 +144,12 @@ export default class CensoringProvider {
   }
 
   public async censor(fast = false) {
+    const keys = this.configurationProvider.getCensoredKeys(this.document);
+    if (keys.includes("*")) {
+      this.censoredRanges = [this.document.validateRange(new Range(0, 0, this.document.lineCount, Infinity))];
+      return this.applyCensoredRanges();
+    }
+
     const { uri, lineCount } = this.document;
     const visibleEditors = window.visibleTextEditors.filter(({ document }) => document.uri === uri);
     const visibleRanges = visibleEditors.reduce<Range[]>((ranges, editor) => [...ranges, ...editor.visibleRanges], []);
@@ -194,6 +200,9 @@ export default class CensoringProvider {
     contentChanges?: readonly TextDocumentContentChangeEvent[]
   ) {
     if (this.disposed || this.document.uri.toString() !== document.uri.toString()) return;
+
+    const keys = this.configurationProvider.getCensoredKeys(this.document);
+    if (keys.includes("*")) return this.censor();
 
     const version = this.document.version.toString();
     const promises: Promise<number>[] = [];

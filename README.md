@@ -55,6 +55,14 @@ For example:
 *.{js,ts}:apitoken,.*password
 ```
 
+To completely hide the content of specific files, the shorthand `*` can be used as the key:
+
+
+```
+# Hide the content of private keys
+id_rsa:*
+```
+
 ## Known Issues
 
 - For large documents it will take some time for the values to get censored. This is unavoidable due to VS Code processing the document before any extensions.
