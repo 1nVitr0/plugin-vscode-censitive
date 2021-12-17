@@ -14,6 +14,16 @@ import CensoringCodeLensProvider from "./CensoringCodeLensProvider";
 import ConfigurationProvider from "./ConfigurationProvider";
 
 type RegexKeyValueParts = { key: string; assignment: string; value: string };
+type MultilineCensor = {
+  start(line: TextLine, regexParts: RegexKeyValueParts): number | null;
+  end(line: TextLine, keyIndent: number, regexParts: RegexKeyValueParts): number | null;
+};
+
+const pythonLikeMultiline: MultilineCensor = {
+  start: (line: TextLine, regex) =>
+    line.text.match(new RegExp(`${regex.key}${regex.assignment}"""`, "i"))?.[0].length ?? null,
+  end: (line: TextLine) => (line.text.indexOf('"""') >= 0 ? line.text.indexOf('"""') : null),
+};
 
 export default class CensoringProvider {
   public readonly document: TextDocument;
@@ -51,6 +61,15 @@ export default class CensoringProvider {
   private static assignmentRegex: Record<string, string> = {
     default: "[\\t ]*[:=]+[\\t ]*",
     yaml: "[\\t ]*:[\\t ]*(?!>|\\|)",
+  };
+  private static multilineValues: Record<string, MultilineCensor> = {
+    python: pythonLikeMultiline,
+    toml: pythonLikeMultiline,
+    yaml: {
+      start: (line: TextLine, regex) =>
+        line.text.match(new RegExp(`${regex.key}\\s*:\\s*[>|]-?\\s*`, "i"))?.[0].length ? Infinity : null,
+      end: (line: TextLine, indent) => (line.firstNonWhitespaceCharacterIndex <= indent ? -1 : null),
+    },
   };
 
   private _disposed: boolean = false;
@@ -143,6 +162,20 @@ export default class CensoringProvider {
     return changes.length;
   }
 
+  public async updateMultilineCensoredRanges(version: string): Promise<number> {
+    if (this.document.version.toString() !== version) throw new Error("Document version has already changed");
+
+    for (let i = this.censoredRanges.length - 1; i > 0; i--) {
+      const range = this.censoredRanges[i];
+      if (!range.isSingleLine) this.censoredRanges.splice(i, 1);
+    }
+
+    const newRanges = await this.getMultilineRanges();
+    this.censoredRanges.push(...newRanges);
+
+    return newRanges.length;
+  }
+
   public applyCensoredRanges() {
     const { document, censorBar, visibleRanges, censoredRanges } = this;
 
@@ -197,6 +230,9 @@ export default class CensoringProvider {
 
     const changes = await Promise.all(promises);
     if (deletions || changes.reduce((sum, n) => sum + n, 0) > 0) this.applyCensoredRanges();
+
+    const multilineChanges = await this.updateMultilineCensoredRanges(version);
+    if (multilineChanges) this.applyCensoredRanges();
   }
 
   private getCensorRegex(keys: string[], languageId?: string): RegExp {
@@ -237,5 +273,46 @@ export default class CensoringProvider {
     }
 
     return ranges;
+  }
+
+  public async getMultilineRanges() {
+    const { languageId } = this.document;
+    const keys = this.configurationProvider.getCensoredKeys(this.document);
+
+    const ranges = [];
+    const multiline = CensoringProvider.multilineValues[languageId];
+    const regexParts = CensoringProvider.buildSensorKeyRegex(keys, languageId);
+
+    if (multiline) {
+      let start: Position | null = null;
+      let startIndent = -1;
+      let line = this.document.lineAt(0);
+      while (line.lineNumber < this.document.lineCount) {
+        const startOffset = multiline.start(line, regexParts);
+        if (start == null && startOffset !== null) {
+          start = this.getLineOffset(line, startOffset);
+          startIndent = line.firstNonWhitespaceCharacterIndex;
+        } else if (start != null) {
+          const endOffset = multiline.end(line, startIndent, regexParts);
+          if (endOffset !== null) {
+            ranges.push(this.document.validateRange(new Range(start, this.getLineOffset(line, endOffset))));
+            start = null;
+          }
+        }
+
+        if (line.lineNumber == this.document.lineCount - 1) break;
+        line = this.document.lineAt(line.lineNumber + 1);
+      }
+
+      if (start != null) ranges.push(this.document.validateRange(new Range(start, line.range.end)));
+    }
+
+    return ranges;
+  }
+
+  public getLineOffset(line: TextLine, offset: number): Position {
+    if (offset == -1) return new Position(line.lineNumber - 1, Infinity);
+    else if (offset == Infinity) return new Position(line.lineNumber + 1, 0);
+    else return new Position(line.lineNumber, offset);
   }
 }
