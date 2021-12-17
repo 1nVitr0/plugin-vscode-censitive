@@ -3,7 +3,7 @@
 [![Rating for Visual Studio Code extension 1nVitr0.censitive](https://vsmarketplacebadge.apphb.com/rating/1nVitr0.censitive.svg)](https://marketplace.visualstudio.com/items?itemName=1nVitr0.censitive)
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 
-# Censitive
+# Censitive (Hide Passwords and Tokens)
 
 Censitive censores all your sensitve information, such as database logins, tokens or keys.
 *Remember to reload the window after creating a .censitive file.*
@@ -60,3 +60,4 @@ For example:
 - For large documents it will take some time for the values to get censored. This is unavoidable due to VS Code processing the document before any extensions.
 - At the moment there is no option to add custom regular expressions
 - The window must be reloaded after creating a new `.censitive` file
+- `.*` will be automatically be transformed to `[^\s]*` to enable multiple censors in a single line. This means, keys with spaces might behave differently than expected 

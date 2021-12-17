@@ -1,7 +1,7 @@
 {
   "name": "censitive",
-  "displayName": "Censitive",
-  "description": "automatically censor sensitive information like passwords and keys",
+  "displayName": "Censitive (Hide Passwords and Tokens)",
+  "description": "automatically censor sensitive information like passwords, tokens and keys",
   "author": "1nVitr0",
   "publisher": "1nVitr0",
   "repository": {
