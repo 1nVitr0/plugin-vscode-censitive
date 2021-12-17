@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.2](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.0.1...v1.0.2) (2021-12-17)
+
+
+### Bug Fixes
+
+* updat documentation and name ([a066980](https://github.com/1nVitr0/plugin-vscode-censitive/commit/a0669806dbd7f7b1dd617da751e4d5e23f22d58d))
+
 ### [1.0.1](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.0.0...v1.0.1) (2021-12-17)
 
 

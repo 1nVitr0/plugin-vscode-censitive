@@ -9,7 +9,7 @@
     "url": "https://github.com/1nVitr0/plugin-vscode-censitive"
   },
   "icon": "resources/icon.png",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "engines": {
     "vscode": "^1.53.0"
   },
