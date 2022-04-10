@@ -56,7 +56,8 @@ export function activate(context: ExtensionContext) {
     })
   );
 
-  window.onDidChangeVisibleTextEditors(onOpenEditor, null, context.subscriptions);
+  window.onDidChangeVisibleTextEditors(onVisibleEditorsChanged, null, context.subscriptions);
+  workspace.onDidCloseTextDocument(onCloseDocument, null, context.subscriptions);
   workspace.onDidChangeConfiguration(onConfigurationChange, null, context.subscriptions);
   extensions.onDidChange(onConfigurationChange, null, context.subscriptions);
 
@@ -69,7 +70,7 @@ export function activate(context: ExtensionContext) {
     }) || [])
   );
 
-  ConfigurationProvider.init().then(() => onOpenEditor(window.visibleTextEditors));
+  ConfigurationProvider.init().then(() => onVisibleEditorsChanged(window.visibleTextEditors));
 }
 
 export function deactivate() {
@@ -84,7 +85,7 @@ function reactivate() {
   deactivate();
 
   instanceMap = [];
-  onOpenEditor(window.visibleTextEditors);
+  onVisibleEditorsChanged(window.visibleTextEditors);
 }
 
 function isValidDocument(config: Configuration, document: TextDocument): boolean {
@@ -120,18 +121,24 @@ function onConfigurationChange() {
 
 function onCensorConfigChanged(folder: WorkspaceFolder, uri: Uri) {
   ConfigurationProvider.updateCensoringKeys(folder, uri);
-  onOpenEditor(window.visibleTextEditors);
+  onVisibleEditorsChanged(window.visibleTextEditors);
 }
 
-function onOpenEditor(editors: TextEditor[]) {
-  const documents = editors.map(({ document }) => document);
-  const forDisposal = instanceMap.filter(({ document }) => documents.indexOf(document) === -1);
+function onCloseDocument(document: TextDocument) {
+  // Dispose instance if document is closed
+  for (let i = 0; i < instanceMap.length; i++) {
+    if (instanceMap[i].document === document) {
+      instanceMap[i].dispose();
+      instanceMap.splice(i, 1);
+      break;
+    }
+  }
+}
 
-  instanceMap = instanceMap.filter(({ document }) => documents.indexOf(document) > -1);
-  forDisposal.forEach((instance) => instance.dispose());
+function onVisibleEditorsChanged(visibleEditors: readonly TextEditor[]) {
+  const visibleDocuments = visibleEditors.map(({ document }) => document);
 
-  // enable highlight in active editors
-  const validDocuments = documents.filter((doc) => isValidDocument(configurationProvider.getConfig(), doc));
-
+  // Only update visible TextEditors with valid configuration
+  const validDocuments = visibleDocuments.filter((doc) => isValidDocument(configurationProvider.getConfig(), doc));
   doCensoring(validDocuments);
 }

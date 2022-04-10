@@ -72,6 +72,7 @@ export default class CensoringProvider {
     },
   };
 
+  private documentVersion: number = -1;
   private _disposed: boolean = false;
   private censoredRanges: Range[] = [];
   private visibleRanges: Range[] = [];
@@ -81,6 +82,12 @@ export default class CensoringProvider {
   private configurationProvider = new ConfigurationProvider();
   private listeners: Disposable[] = [];
 
+  public static getCensorRegex(keys: string[], languageId?: string): RegExp {
+    if (languageId && CensoringProvider.codeLanguages.indexOf(languageId) > -1)
+      return CensoringProvider.buildCensorKeyRegexCode(keys, languageId);
+    else return CensoringProvider.buildCensorKeyRegexGeneric(keys, languageId);
+  }
+
   public static buildCensorKeyRegexCode(keys: string[], languageId?: string): RegExp {
     const { key, assignment, value } = CensoringProvider.buildSensorKeyRegex(keys, languageId);
     return new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
@@ -89,7 +96,9 @@ export default class CensoringProvider {
   public static buildCensorKeyRegexGeneric(keys: string[], languageId?: string) {
     const additionalValues = ["([^\\s][^\\v\\r\\n,;]*)"];
     const { key, assignment, value } = CensoringProvider.buildSensorKeyRegex(keys, languageId, ...additionalValues);
-    return new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
+    const r = new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
+
+    return r;
   }
 
   public static buildSensorKeyRegex(
@@ -99,11 +108,19 @@ export default class CensoringProvider {
   ): RegexKeyValueParts {
     const assignment = CensoringProvider.assignmentRegex[languageId] || CensoringProvider.assignmentRegex["default"];
     const escapedKeys = keys.map((key) => key.replace(/(?<!\\)\.\*/g, "[^\\s]*"));
-    const escapedValues = ["'([^']+|\\\\')*'", '"([^"]+|\\\\")*"', "`([^`]+|\\\\`)*`", ...additionalValueExpressions];
+    const escapedValues = [
+      ...['"', "'", "`"].map(CensoringProvider.buildQuotedValueExpression),
+      ...additionalValueExpressions,
+    ];
 
     const key = `(?:${escapedKeys.join("|")})`;
     const value = `(${escapedValues.join("|")})`;
     return { key, assignment, value };
+  }
+
+  private static buildQuotedValueExpression(quotation: string): string {
+    const q = quotation;
+    return `(?<!\\\\)${q}((\\\\${q}|[^${q}])*)(?<!\\\\)${q}`;
   }
 
   public constructor(
@@ -144,9 +161,13 @@ export default class CensoringProvider {
   }
 
   public async censor(fast = false) {
+    // We need to reapply the decorations when the visibility changes
+    if (this.document.version === this.documentVersion) this.applyCensoredRanges();
+
     const keys = this.configurationProvider.getCensoredKeys(this.document);
     if (keys.includes("*")) {
       this.censoredRanges = [this.document.validateRange(new Range(0, 0, this.document.lineCount, Infinity))];
+      this.documentVersion = this.document.version;
       return this.applyCensoredRanges();
     }
 
@@ -157,29 +178,8 @@ export default class CensoringProvider {
     if (fast && lineCount > this.configurationProvider.getConfig().useFastModeMinLines)
       await this.onUpdate(this.document, visibleRanges);
     await this.onUpdate(this.document);
-  }
 
-  public async updateCensoredRanges(text: string, version: string, offset?: Position): Promise<number> {
-    if (this.document.version.toString() !== version) throw new Error("Document version has already changed");
-
-    const changes = await this.getCensoredRanges(text, offset);
-    this.censoredRanges.push(...changes);
-
-    return changes.length;
-  }
-
-  public async updateMultilineCensoredRanges(version: string): Promise<number> {
-    if (this.document.version.toString() !== version) throw new Error("Document version has already changed");
-
-    for (let i = this.censoredRanges.length - 1; i > 0; i--) {
-      const range = this.censoredRanges[i];
-      if (!range.isSingleLine) this.censoredRanges.splice(i, 1);
-    }
-
-    const newRanges = await this.getMultilineRanges();
-    this.censoredRanges.push(...newRanges);
-
-    return newRanges.length;
+    this.documentVersion = this.document.version;
   }
 
   public applyCensoredRanges() {
@@ -194,23 +194,49 @@ export default class CensoringProvider {
     if (removePrevious) removePrevious();
   }
 
+  private async updateCensoredRanges(text: string, version: number, offset?: Position): Promise<number> {
+    if (this.document.version !== version) throw new Error("Document version has already changed");
+
+    const changes = await this.getCensoredRanges(text, offset);
+    this.censoredRanges.push(...changes);
+
+    return changes.length;
+  }
+
+  private async updateMultilineCensoredRanges(version: number): Promise<number> {
+    if (this.document.version !== version) throw new Error("Document version has already changed");
+
+    for (let i = this.censoredRanges.length - 1; i > 0; i--) {
+      const range = this.censoredRanges[i];
+      if (!range.isSingleLine) this.censoredRanges.splice(i, 1);
+    }
+
+    const newRanges = await this.getMultilineRanges();
+    this.censoredRanges.push(...newRanges);
+
+    return newRanges.length;
+  }
+
   private async onUpdate(
     document = this.document,
     ranges?: Range[] | null,
     contentChanges?: readonly TextDocumentContentChangeEvent[]
   ) {
-    if (this.disposed || this.document.uri.toString() !== document.uri.toString()) return;
+    const { version, uri } = document;
+    if (this.disposed || uri.toString() !== this.document.uri.toString() || version === this.documentVersion) return;
 
-    const keys = this.configurationProvider.getCensoredKeys(this.document);
-    if (keys.includes("*")) return this.censor();
+    const keys = this.configurationProvider.getCensoredKeys(document);
+    if (keys.includes("*")) {
+      this.documentVersion = version;
+      return this.censor();
+    }
 
-    const version = this.document.version.toString();
     const promises: Promise<number>[] = [];
     let deletions = 0;
 
     if (ranges) {
       for (const range of ranges) {
-        promises.push(this.updateCensoredRanges(this.document.getText(range), version, range.start));
+        promises.push(this.updateCensoredRanges(document.getText(range), version, range.start));
       }
     } else if (contentChanges) {
       let lineOffset = 0;
@@ -234,7 +260,7 @@ export default class CensoringProvider {
       }
     } else {
       this.censoredRanges = [];
-      promises.push(this.updateCensoredRanges(this.document.getText(), version));
+      promises.push(this.updateCensoredRanges(document.getText(), version));
     }
 
     const changes = await Promise.all(promises);
@@ -242,12 +268,8 @@ export default class CensoringProvider {
 
     const multilineChanges = await this.updateMultilineCensoredRanges(version);
     if (multilineChanges) this.applyCensoredRanges();
-  }
 
-  private getCensorRegex(keys: string[], languageId?: string): RegExp {
-    if (languageId && CensoringProvider.codeLanguages.indexOf(languageId) > -1)
-      return CensoringProvider.buildCensorKeyRegexCode(keys, languageId);
-    else return CensoringProvider.buildCensorKeyRegexGeneric(keys, languageId);
+    this.documentVersion = version;
   }
 
   private applyDecoration(decoration: TextEditorDecorationType, ranges: Range[]) {
@@ -263,12 +285,11 @@ export default class CensoringProvider {
 
     const documentOffset = offset ? this.document.offsetAt(offset) : 0;
     const ranges: Range[] = [];
-    const regex = this.getCensorRegex(keys, languageId);
+    const regex = CensoringProvider.getCensorRegex(keys, languageId);
 
     let currentMatch = regex.exec(text);
     while (currentMatch !== null) {
-      const [_, key, value, ...innerAll] = currentMatch;
-      const inner = innerAll.find((s) => !!s);
+      const [_, key, value, inner] = currentMatch;
 
       const valueOffset = inner ? value?.indexOf(inner) : 0;
       const start = currentMatch.index + key.length + valueOffset;
