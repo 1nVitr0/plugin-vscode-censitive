@@ -8,7 +8,7 @@ import {
   ProviderResult,
   Range,
   TextDocument,
-} from 'vscode';
+} from "vscode";
 
 export default class CensoringCodeLensProvider implements CodeLensProvider {
   private onDidChange: EventEmitter<void>;
@@ -33,20 +33,24 @@ export default class CensoringCodeLensProvider implements CodeLensProvider {
 
   public provideCodeLenses({ fileName }: TextDocument, token: CancellationToken): ProviderResult<CodeLens[]> {
     const { censored, visible } = this.censorMap[fileName] || { censored: [], visible: [] };
+    let lineIndex: number[] = [];
 
-    const lenses: CodeLens[] = censored.map(
-      (range) =>
-        new CodeLens(range, {
-          title: 'Copy to Clipboard',
-          command: 'censitive.copyCensoredRange',
-          arguments: [range],
-        })
-    );
+    const lenses: CodeLens[] = censored.map((range) => {
+      const index = (lineIndex[range.start.line] = (lineIndex[range.start.line] || 0) + 1);
+      return new CodeLens(range, {
+        title: index > 1 ? `Copy #${index} to Clipboard` : "Copy to Clipboard",
+        command: "censitive.copyCensoredRange",
+        arguments: [range],
+      });
+    });
+
+    lineIndex = [];
     for (const range of censored.filter((range) => !visible.some((v) => v.isEqual(range)))) {
+      const index = (lineIndex[range.start.line] = (lineIndex[range.start.line] || 0) + 1);
       lenses.push(
         new CodeLens(range, {
-          title: 'Show Censored Text',
-          command: 'censitive.displayCensoredRange',
+          title: index > 1 ? `Show Censored Text #${index}` : "Show Censored Text",
+          command: "censitive.displayCensoredRange",
           arguments: [range],
         })
       );

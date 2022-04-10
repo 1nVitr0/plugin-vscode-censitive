@@ -82,6 +82,12 @@ export default class CensoringProvider {
   private configurationProvider = new ConfigurationProvider();
   private listeners: Disposable[] = [];
 
+  public static getCensorRegex(keys: string[], languageId?: string): RegExp {
+    if (languageId && CensoringProvider.codeLanguages.indexOf(languageId) > -1)
+      return CensoringProvider.buildCensorKeyRegexCode(keys, languageId);
+    else return CensoringProvider.buildCensorKeyRegexGeneric(keys, languageId);
+  }
+
   public static buildCensorKeyRegexCode(keys: string[], languageId?: string): RegExp {
     const { key, assignment, value } = CensoringProvider.buildSensorKeyRegex(keys, languageId);
     return new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
@@ -266,12 +272,6 @@ export default class CensoringProvider {
     this.documentVersion = version;
   }
 
-  private getCensorRegex(keys: string[], languageId?: string): RegExp {
-    if (languageId && CensoringProvider.codeLanguages.indexOf(languageId) > -1)
-      return CensoringProvider.buildCensorKeyRegexCode(keys, languageId);
-    else return CensoringProvider.buildCensorKeyRegexGeneric(keys, languageId);
-  }
-
   private applyDecoration(decoration: TextEditorDecorationType, ranges: Range[]) {
     window.visibleTextEditors
       .filter(({ document }) => document.uri === this.document.uri)
@@ -285,7 +285,7 @@ export default class CensoringProvider {
 
     const documentOffset = offset ? this.document.offsetAt(offset) : 0;
     const ranges: Range[] = [];
-    const regex = this.getCensorRegex(keys, languageId);
+    const regex = CensoringProvider.getCensorRegex(keys, languageId);
 
     let currentMatch = regex.exec(text);
     while (currentMatch !== null) {
