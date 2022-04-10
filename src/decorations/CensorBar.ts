@@ -46,12 +46,14 @@ export default class CensorBar {
   }
 
   private generateDecoration(): TextEditorDecorationType {
-    return (this._decoration = window.createTextEditorDecorationType({
+    this._decoration = window.createTextEditorDecorationType({
       before: CensorBar.buildRenderAttachment(this._options.prefix),
       after: CensorBar.buildRenderAttachment(this._options.postfix),
       rangeBehavior: this._options.grow ? DecorationRangeBehavior.OpenOpen : DecorationRangeBehavior.ClosedClosed,
       ...this.getDecorationParams(),
-    }));
+    });
+
+    return this._decoration;
   }
 
   private getDecorationParams(): DecorationRenderOptions {
