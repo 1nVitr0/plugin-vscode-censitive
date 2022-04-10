@@ -90,7 +90,9 @@ export default class CensoringProvider {
   public static buildCensorKeyRegexGeneric(keys: string[], languageId?: string) {
     const additionalValues = ["([^\\s][^\\v\\r\\n,;]*)"];
     const { key, assignment, value } = CensoringProvider.buildSensorKeyRegex(keys, languageId, ...additionalValues);
-    return new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
+    const r = new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
+
+    return r;
   }
 
   public static buildSensorKeyRegex(
@@ -100,11 +102,19 @@ export default class CensoringProvider {
   ): RegexKeyValueParts {
     const assignment = CensoringProvider.assignmentRegex[languageId] || CensoringProvider.assignmentRegex["default"];
     const escapedKeys = keys.map((key) => key.replace(/(?<!\\)\.\*/g, "[^\\s]*"));
-    const escapedValues = ["'([^']+|\\\\')*'", '"([^"]+|\\\\")*"', "`([^`]+|\\\\`)*`", ...additionalValueExpressions];
+    const escapedValues = [
+      ...['"', "'", "`"].map(CensoringProvider.buildQuotedValueExpression),
+      ...additionalValueExpressions,
+    ];
 
     const key = `(?:${escapedKeys.join("|")})`;
     const value = `(${escapedValues.join("|")})`;
     return { key, assignment, value };
+  }
+
+  private static buildQuotedValueExpression(quotation: string): string {
+    const q = quotation;
+    return `(?<!\\\\)${q}((\\\\${q}|[^${q}])*)(?<!\\\\)${q}`;
   }
 
   public constructor(
@@ -279,8 +289,7 @@ export default class CensoringProvider {
 
     let currentMatch = regex.exec(text);
     while (currentMatch !== null) {
-      const [_, key, value, ...innerAll] = currentMatch;
-      const inner = innerAll.find((s) => !!s);
+      const [_, key, value, inner] = currentMatch;
 
       const valueOffset = inner ? value?.indexOf(inner) : 0;
       const start = currentMatch.index + key.length + valueOffset;
