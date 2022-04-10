@@ -1,3 +1,16 @@
+## [1.1.1](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.1.0...v1.1.1) (2022-04-10)
+
+
+### Bug Fixes
+
+* correctly include escaped quotes ([3246908](https://github.com/1nVitr0/plugin-vscode-censitive/commit/3246908d95f802e7c2c63cc0b06e425867a89062))
+* display line censoring index in code lenses ([0336b70](https://github.com/1nVitr0/plugin-vscode-censitive/commit/0336b706ccc924b2b7aeeb3c7491fd26169a78a9))
+
+
+### Performance Improvements
+
+* increase caching performance ([6026dab](https://github.com/1nVitr0/plugin-vscode-censitive/commit/6026dab0755eb0f842b7e09301344e474d7c46ec))
+
 # Changelog
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
