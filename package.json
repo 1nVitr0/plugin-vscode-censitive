@@ -123,7 +123,7 @@
     "@types/glob": "^7.2.0",
     "@types/mocha": "^9.1.0",
     "@types/node": "^16.11.26",
-    "@types/vscode": "^1.66.0",
+    "@types/vscode": "^1.53.0",
     "@typescript-eslint/eslint-plugin": "^5.18.0",
     "@typescript-eslint/parser": "^5.18.0",
     "eslint": "^8.13.0",
@@ -142,21 +142,6 @@
       "main",
       "develop"
     ],
-    "verifyConditions": [
-      "semantic-release-vsce",
-      "@semantic-release/github"
-    ],
-    "prepare": {
-      "path": "semantic-release-vsce",
-      "packageVsix": true
-    },
-    "publish": [
-      "semantic-release-vsce",
-      {
-        "path": "@semantic-release/github",
-        "assets": "*.vsix"
-      }
-    ],
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
@@ -170,6 +155,12 @@
             "CHANGELOG.md",
             "README.md"
           ]
+        }
+      ],
+      [
+        "semantic-release-vsce",
+        {
+          "packageVsix": true
         }
       ],
       "@semantic-release/github"
