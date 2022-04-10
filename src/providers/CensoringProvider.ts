@@ -72,6 +72,7 @@ export default class CensoringProvider {
     },
   };
 
+  private documentVersion: number = -1;
   private _disposed: boolean = false;
   private censoredRanges: Range[] = [];
   private visibleRanges: Range[] = [];
@@ -144,9 +145,13 @@ export default class CensoringProvider {
   }
 
   public async censor(fast = false) {
+    // We need to reapply the decorations when the visibility changes
+    if (this.document.version === this.documentVersion) this.applyCensoredRanges();
+
     const keys = this.configurationProvider.getCensoredKeys(this.document);
     if (keys.includes("*")) {
       this.censoredRanges = [this.document.validateRange(new Range(0, 0, this.document.lineCount, Infinity))];
+      this.documentVersion = this.document.version;
       return this.applyCensoredRanges();
     }
 
@@ -157,29 +162,8 @@ export default class CensoringProvider {
     if (fast && lineCount > this.configurationProvider.getConfig().useFastModeMinLines)
       await this.onUpdate(this.document, visibleRanges);
     await this.onUpdate(this.document);
-  }
 
-  public async updateCensoredRanges(text: string, version: string, offset?: Position): Promise<number> {
-    if (this.document.version.toString() !== version) throw new Error("Document version has already changed");
-
-    const changes = await this.getCensoredRanges(text, offset);
-    this.censoredRanges.push(...changes);
-
-    return changes.length;
-  }
-
-  public async updateMultilineCensoredRanges(version: string): Promise<number> {
-    if (this.document.version.toString() !== version) throw new Error("Document version has already changed");
-
-    for (let i = this.censoredRanges.length - 1; i > 0; i--) {
-      const range = this.censoredRanges[i];
-      if (!range.isSingleLine) this.censoredRanges.splice(i, 1);
-    }
-
-    const newRanges = await this.getMultilineRanges();
-    this.censoredRanges.push(...newRanges);
-
-    return newRanges.length;
+    this.documentVersion = this.document.version;
   }
 
   public applyCensoredRanges() {
@@ -194,23 +178,49 @@ export default class CensoringProvider {
     if (removePrevious) removePrevious();
   }
 
+  private async updateCensoredRanges(text: string, version: number, offset?: Position): Promise<number> {
+    if (this.document.version !== version) throw new Error("Document version has already changed");
+
+    const changes = await this.getCensoredRanges(text, offset);
+    this.censoredRanges.push(...changes);
+
+    return changes.length;
+  }
+
+  private async updateMultilineCensoredRanges(version: number): Promise<number> {
+    if (this.document.version !== version) throw new Error("Document version has already changed");
+
+    for (let i = this.censoredRanges.length - 1; i > 0; i--) {
+      const range = this.censoredRanges[i];
+      if (!range.isSingleLine) this.censoredRanges.splice(i, 1);
+    }
+
+    const newRanges = await this.getMultilineRanges();
+    this.censoredRanges.push(...newRanges);
+
+    return newRanges.length;
+  }
+
   private async onUpdate(
     document = this.document,
     ranges?: Range[] | null,
     contentChanges?: readonly TextDocumentContentChangeEvent[]
   ) {
-    if (this.disposed || this.document.uri.toString() !== document.uri.toString()) return;
+    const { version, uri } = document;
+    if (this.disposed || uri.toString() !== this.document.uri.toString() || version === this.documentVersion) return;
 
-    const keys = this.configurationProvider.getCensoredKeys(this.document);
-    if (keys.includes("*")) return this.censor();
+    const keys = this.configurationProvider.getCensoredKeys(document);
+    if (keys.includes("*")) {
+      this.documentVersion = version;
+      return this.censor();
+    }
 
-    const version = this.document.version.toString();
     const promises: Promise<number>[] = [];
     let deletions = 0;
 
     if (ranges) {
       for (const range of ranges) {
-        promises.push(this.updateCensoredRanges(this.document.getText(range), version, range.start));
+        promises.push(this.updateCensoredRanges(document.getText(range), version, range.start));
       }
     } else if (contentChanges) {
       let lineOffset = 0;
@@ -234,7 +244,7 @@ export default class CensoringProvider {
       }
     } else {
       this.censoredRanges = [];
-      promises.push(this.updateCensoredRanges(this.document.getText(), version));
+      promises.push(this.updateCensoredRanges(document.getText(), version));
     }
 
     const changes = await Promise.all(promises);
@@ -242,6 +252,8 @@ export default class CensoringProvider {
 
     const multilineChanges = await this.updateMultilineCensoredRanges(version);
     if (multilineChanges) this.applyCensoredRanges();
+
+    this.documentVersion = version;
   }
 
   private getCensorRegex(keys: string[], languageId?: string): RegExp {
