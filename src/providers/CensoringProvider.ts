@@ -94,11 +94,10 @@ export default class CensoringProvider {
   }
 
   public static buildCensorKeyRegexGeneric(keys: string[], languageId?: string) {
-    const additionalValues = ["([^\\s][^\\v\\r\\n,;]*)"];
+    const additionalValues = ["([^\\s\\v\\r\\n,;]*)"];
     const { key, assignment, value } = CensoringProvider.buildSensorKeyRegex(keys, languageId, ...additionalValues);
-    const r = new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
 
-    return r;
+    return new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
   }
 
   public static buildSensorKeyRegex(
@@ -289,7 +288,8 @@ export default class CensoringProvider {
 
     let currentMatch = regex.exec(text);
     while (currentMatch !== null) {
-      const [_, key, value, inner] = currentMatch;
+      const [_, key, value, ...innerAll] = currentMatch;
+      const inner = innerAll.reduce((max, s) => (s && s.length > max.length ? s : max), "");
 
       const valueOffset = inner ? value?.indexOf(inner) : 0;
       const start = currentMatch.index + key.length + valueOffset;
