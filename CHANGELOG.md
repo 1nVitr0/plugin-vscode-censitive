@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.1.1...v1.1.2) (2022-04-12)
+
+
+### Bug Fixes
+
+* fix non-quoted censoring ([878672a](https://github.com/1nVitr0/plugin-vscode-censitive/commit/878672a6fe63de7005e3cef06cbf5978ca6a6ef6))
+
 ## [1.1.1](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.1.0...v1.1.1) (2022-04-10)
 
 
