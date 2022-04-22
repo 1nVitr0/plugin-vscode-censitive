@@ -17,11 +17,12 @@ Censitive censores all your sensitve information, such as database logins, token
 
 1. Create a `.censitive` file in the root of your workspace, e.g.:
 > ```
+> // Format <globPattern>:[keyRegex]
 > .env:.*_KEY,.*_token,.*_PassWord
 > id_rsa:*
 > ```
-2. Reload the window using `Developer: Reload Window`
-3. Open a file specified and `.censitive` and check the censoring
+1. Reload the window using `Developer: Reload Window`
+2. Open a file specified in `.censitive` and check the censoring
 
 ## Features
 
