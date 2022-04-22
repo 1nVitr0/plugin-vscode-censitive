@@ -106,7 +106,7 @@ export default class CensoringProvider {
     ...additionalValueExpressions: string[]
   ): RegexKeyValueParts {
     const assignment = CensoringProvider.assignmentRegex[languageId] || CensoringProvider.assignmentRegex["default"];
-    const escapedKeys = keys.map((key) => key.replace(/(?<!\\)\.\*/g, "[^\\s]*"));
+    const escapedKeys = keys.map((key) => key.replace(/(?<!\\)\.\*/g, "[^\\s=]*"));
     const escapedValues = [
       ...['"', "'", "`"].map(CensoringProvider.buildQuotedValueExpression),
       ...additionalValueExpressions,
