@@ -10,10 +10,18 @@ Censitive censores all your sensitve information, such as database logins, token
 
 ![demo for .env files](https://raw.githubusercontent.com/1nVitr0/plugin-vscode-censitive/main/resources/demo.gif)
 
-*Please be aware that this extension does NOT guarantee that your private information stays hidden!*
-*There is some unavoidable delay between opening a document and the data being censored.*
+*Please be aware that this extension does __NOT__ guarantee that your private information stays hidden!*
+*There is some __unavoidable delay__ between opening a document and the data being censored.*
 
-**THIS EXTENSION IS NOT SUITABLE FOR CRITICAL DATA THAT IS DEPENDENT ON BEING INVISIBLE!**
+### To get started
+
+1. Create a `.censitive` file in the root of your workspace, e.g.:
+> ```
+> .env:.*_KEY,.*_token,.*_PassWord
+> id_rsa:*
+> ```
+2. Reload the window using `Developer: Reload Window`
+3. Open a file specified and `.censitive` and check the censoring
 
 ## Features
 
