@@ -1,3 +1,11 @@
+## [1.1.3](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.1.2...v1.1.3) (2022-04-22)
+
+
+### Bug Fixes
+
+* fix censoring of values containing `=` ([8c58258](https://github.com/1nVitr0/plugin-vscode-censitive/commit/8c582589e9d0c35d614d8111944eee86cd5159b8))
+* update extension icon ([af66d1c](https://github.com/1nVitr0/plugin-vscode-censitive/commit/af66d1c2ff79635c31c8e23f0eba31d9158582a6))
+
 ## [1.1.2](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.1.1...v1.1.2) (2022-04-12)
 
 
