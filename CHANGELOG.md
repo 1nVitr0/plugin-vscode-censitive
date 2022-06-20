@@ -1,3 +1,10 @@
+## [1.1.4](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.1.3...v1.1.4) (2022-06-20)
+
+
+### Bug Fixes
+
+* updgrade dependencies ([a4331d1](https://github.com/1nVitr0/plugin-vscode-censitive/commit/a4331d113c0d67f0aef8b52ce6afb6e34a0acef6))
+
 ## [1.1.3](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.1.2...v1.1.3) (2022-04-22)
 
 
