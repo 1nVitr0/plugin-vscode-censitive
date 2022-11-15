@@ -6,7 +6,6 @@
 # Censitive (Hide Passwords and Tokens)
 
 Censitive censores all your sensitve information, such as database logins, tokens or keys.
-*Remember to reload the window after creating a .censitive file.*
 
 ![demo for .env files](https://raw.githubusercontent.com/1nVitr0/plugin-vscode-censitive/main/resources/demo.gif)
 
@@ -15,19 +14,19 @@ Censitive censores all your sensitve information, such as database logins, token
 
 ### To get started
 
-1. Create a `.censitive` file in the root of your workspace, e.g.:
-> ```
+1. Create a `.censitive` file in the root of your workspace (or in your home folder), e.g.:
+> ```censitive
 > // Format <globPattern>:[keyRegex]
 > .env:.*_KEY,.*_token,.*_PassWord
 > id_rsa:*
 > ```
-1. Reload the window using `Developer: Reload Window`
-2. Open a file specified in `.censitive` and check the censoring
+2. Reload the window using `Developer: Reload Window`
+3. Open a file specified in `.censitive` and check the censoring
 
 ## Features
 
-The extension uses decorations to block out sensitive information as set in a .censitive file in the workspace.
-If no such file is present, the extension will not be activated.
+The extension uses decorations to block out sensitive information as set in a .censitive file in the workspace or in your home directory.
+If both files are present and `censtitive.mergeGlobalCensoring` is enabled, their censoring will be merged.
 
 When active, the extension will censor all content set in .censitive file by using a key-value approach.
 This means, the .censitive file specifies key regexes and the extension automatically finds values assigned to these keys.
@@ -42,6 +41,7 @@ Two code actions "Copy to Clipboard" and "Show Censored Text" are provided for c
 This extension contributes the following settings:
 
 * `censtitive.enable`: enable/disable this extension
+* `censtitive.mergeGlobalCensoring`: merge configuration in your home directory with the workspace settings
 * `censitive.useFastModeMinLines`: above this line threshold the document is censored twice: once for the visible range and once for the entire document. This speeds up censoring marginally, but can still be slow
 * `censtitive.censor`: Visual settings used for censoring
 * `censtitive.showTimeoutSeconds`: Controls the time the password is shown after clicking on 'Show Censored Text'
@@ -49,14 +49,14 @@ This extension contributes the following settings:
 The values being censored can be controlled using a `.censitive` file in the workspace root.
 The keys are matched case insensitive: It's basic format is:
 
-```
+```censitive
 # Comment
 <globPattern>:[keyRegex]
 ```
 
 For example:
 
-```
+```censitive
 # Hide the following variables in .env files
 .env:.*_KEY,.*_token,.*_PassWord
 
@@ -66,15 +66,13 @@ For example:
 
 To completely hide the content of specific files, the shorthand `*` can be used as the key:
 
-
-```
+```censitive
 # Hide the content of private keys
 id_rsa:*
 ```
 
 ## Known Issues
 
-- For large documents it will take some time for the values to get censored. This is unavoidable due to VS Code processing the document before any extensions.
-- At the moment there is no option to add custom regular expressions
-- The window must be reloaded after creating a new `.censitive` file
-- `.*` will be automatically be transformed to `[^\s]*` to enable multiple censors in a single line. This means, keys with spaces might behave differently than expected 
+* For large documents it will take some time for the values to get censored. This is unavoidable due to VS Code processing the document before any extensions.
+* At the moment there is no option to add custom regular expressions
+* `.*` will be automatically be transformed to `[^\s]*` to enable multiple censors in a single line. This means, keys with spaces might behave differently than expected
