@@ -24,12 +24,17 @@ export default class CensorBar {
   }
 
   public get decoration(): TextEditorDecorationType {
-    if (!this._decoration) return this.generateDecoration();
-    else return this._decoration;
+    if (!this._decoration) {
+      return this.generateDecoration();
+    } else {
+      return this._decoration;
+    }
   }
 
   private static buildRenderAttachment(contentText?: string): ThemableDecorationAttachmentRenderOptions | undefined {
-    if (!contentText) return undefined;
+    if (!contentText) {
+      return undefined;
+    }
 
     return { contentText };
   }

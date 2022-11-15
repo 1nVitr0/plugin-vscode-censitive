@@ -18,12 +18,22 @@ import CensoringCodeLensProvider from "./providers/CensoringCodeLensProvider";
 import CensoringProvider from "./providers/CensoringProvider";
 import ConfigurationProvider, { Configuration } from "./providers/ConfigurationProvider";
 
+let userHome = env.appRoot;
 let configurationProvider = new ConfigurationProvider();
 let censoringCodeLensProvider: CensoringCodeLensProvider;
 let instanceMap: CensoringProvider[] = [];
 let watchers: FileSystemWatcher[] = [];
 
 export function activate(context: ExtensionContext) {
+  if (userHome) {
+    try {
+      // Try to set the correct user home path
+      userHome = require("os").homedir();
+    } catch (e) {
+      window.showErrorMessage(".censitive could not get user home directory, global config will not be loaded");
+    }
+  }
+
   context.subscriptions.push(
     languages.registerCodeLensProvider(
       { pattern: "**/*" },
@@ -34,16 +44,18 @@ export function activate(context: ExtensionContext) {
       window.showInformationMessage(`Censoring ${enabled ? "enabled" : "disabled"}.`);
     }),
     commands.registerTextEditorCommand("censitive.copyCensoredRange", (editor, _, range?: Range) => {
-      if (!range)
+      if (!range) {
         return window.showErrorMessage("No censored field found. This command should not be triggered manually.");
+      }
 
       const text = editor.document.getText(range);
       env.clipboard.writeText(text);
       window.showInformationMessage("Censored field copied to clipboard!");
     }),
     commands.registerTextEditorCommand("censitive.displayCensoredRange", (editor, _, range?: Range) => {
-      if (!range)
+      if (!range) {
         return window.showErrorMessage("No censored field found. This command should not be triggered manually.");
+      }
 
       findOrCreateInstance(editor.document).then((censoring) => {
         censoring.addVisibleRange(range);
@@ -69,6 +81,11 @@ export function activate(context: ExtensionContext) {
       return configWatcher;
     }) || [])
   );
+  if (userHome) {
+    const globalConfigWatcher = workspace.createFileSystemWatcher(new RelativePattern(userHome, ".censitive"));
+    globalConfigWatcher.onDidChange(onCensorConfigChanged.bind(onCensorConfigChanged, Uri.file(userHome)));
+    watchers.push(globalConfigWatcher);
+  }
 
   ConfigurationProvider.init().then(() => onVisibleEditorsChanged(window.visibleTextEditors));
 }
@@ -119,7 +136,7 @@ function onConfigurationChange() {
   ConfigurationProvider.updateConfig().then(reactivate);
 }
 
-function onCensorConfigChanged(folder: WorkspaceFolder, uri: Uri) {
+function onCensorConfigChanged(folder: WorkspaceFolder | Uri, uri: Uri) {
   ConfigurationProvider.updateCensoringKeys(folder, uri);
   onVisibleEditorsChanged(window.visibleTextEditors);
 }
