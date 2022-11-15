@@ -83,9 +83,11 @@ export default class CensoringProvider {
   private listeners: Disposable[] = [];
 
   public static getCensorRegex(keys: string[], languageId?: string): RegExp {
-    if (languageId && CensoringProvider.codeLanguages.indexOf(languageId) > -1)
+    if (languageId && CensoringProvider.codeLanguages.indexOf(languageId) > -1) {
       return CensoringProvider.buildCensorKeyRegexCode(keys, languageId);
-    else return CensoringProvider.buildCensorKeyRegexGeneric(keys, languageId);
+    } else {
+      return CensoringProvider.buildCensorKeyRegexGeneric(keys, languageId);
+    }
   }
 
   public static buildCensorKeyRegexCode(keys: string[], languageId?: string): RegExp {
@@ -145,7 +147,9 @@ export default class CensoringProvider {
 
   public removeVisibleRange(range: Range): void {
     const i = this.visibleRanges.findIndex((compare) => range.isEqual(compare));
-    if (i >= 0) this.visibleRanges.splice(i, 1);
+    if (i >= 0) {
+      this.visibleRanges.splice(i, 1);
+    }
   }
 
   public clearVisibleRanges(): void {
@@ -160,8 +164,12 @@ export default class CensoringProvider {
   }
 
   public async censor(fast = false) {
+    const { config } = this.configurationProvider;
+
     // We need to reapply the decorations when the visibility changes
-    if (this.document.version === this.documentVersion) this.applyCensoredRanges();
+    if (this.document.version === this.documentVersion) {
+      this.applyCensoredRanges();
+    }
 
     const keys = this.configurationProvider.getCensoredKeys(this.document);
     if (keys.includes("*")) {
@@ -174,8 +182,9 @@ export default class CensoringProvider {
     const visibleEditors = window.visibleTextEditors.filter(({ document }) => document.uri === uri);
     const visibleRanges = visibleEditors.reduce<Range[]>((ranges, editor) => [...ranges, ...editor.visibleRanges], []);
 
-    if (fast && lineCount > this.configurationProvider.getConfig().useFastModeMinLines)
+    if (fast && lineCount > config.useFastModeMinLines) {
       await this.onUpdate(this.document, visibleRanges);
+    }
     await this.onUpdate(this.document);
 
     this.documentVersion = this.document.version;
@@ -190,11 +199,15 @@ export default class CensoringProvider {
       censoredRanges.filter((range) => !visibleRanges.some((visible) => visible.isEqual(range)))
     );
     this.codeLensDisposable = this.codeLensProvider.setCensoredRanges(document, censoredRanges, visibleRanges);
-    if (removePrevious) removePrevious();
+    if (removePrevious) {
+      removePrevious();
+    }
   }
 
   private async updateCensoredRanges(text: string, version: number, offset?: Position): Promise<number> {
-    if (this.document.version !== version) throw new Error("Document version has already changed");
+    if (this.document.version !== version) {
+      throw new Error("Document version has already changed");
+    }
 
     const changes = await this.getCensoredRanges(text, offset);
     this.censoredRanges.push(...changes);
@@ -203,11 +216,15 @@ export default class CensoringProvider {
   }
 
   private async updateMultilineCensoredRanges(version: number): Promise<number> {
-    if (this.document.version !== version) throw new Error("Document version has already changed");
+    if (this.document.version !== version) {
+      throw new Error("Document version has already changed");
+    }
 
     for (let i = this.censoredRanges.length - 1; i > 0; i--) {
       const range = this.censoredRanges[i];
-      if (!range.isSingleLine) this.censoredRanges.splice(i, 1);
+      if (!range.isSingleLine) {
+        this.censoredRanges.splice(i, 1);
+      }
     }
 
     const newRanges = await this.getMultilineRanges();
@@ -222,7 +239,9 @@ export default class CensoringProvider {
     contentChanges?: readonly TextDocumentContentChangeEvent[]
   ) {
     const { version, uri } = document;
-    if (this.disposed || uri.toString() !== this.document.uri.toString() || version === this.documentVersion) return;
+    if (this.disposed || uri.toString() !== this.document.uri.toString() || version === this.documentVersion) {
+      return;
+    }
 
     const keys = this.configurationProvider.getCensoredKeys(document);
     if (keys.includes("*")) {
@@ -263,10 +282,14 @@ export default class CensoringProvider {
     }
 
     const changes = await Promise.all(promises);
-    if (deletions || changes.reduce((sum, n) => sum + n, 0) > 0) this.applyCensoredRanges();
+    if (deletions || changes.reduce((sum, n) => sum + n, 0) > 0) {
+      this.applyCensoredRanges();
+    }
 
     const multilineChanges = await this.updateMultilineCensoredRanges(version);
-    if (multilineChanges) this.applyCensoredRanges();
+    if (multilineChanges) {
+      this.applyCensoredRanges();
+    }
 
     this.documentVersion = version;
   }
@@ -280,7 +303,9 @@ export default class CensoringProvider {
   private async getCensoredRanges(text: string, offset?: Position): Promise<Range[]> {
     const { languageId } = this.document;
     const keys = this.configurationProvider.getCensoredKeys(this.document);
-    if (!keys.length) return [];
+    if (!keys.length) {
+      return [];
+    }
 
     const documentOffset = offset ? this.document.offsetAt(offset) : 0;
     const ranges: Range[] = [];
@@ -319,10 +344,10 @@ export default class CensoringProvider {
       let line = this.document.lineAt(0);
       while (line.lineNumber < this.document.lineCount) {
         const startOffset = multiline.start(line, regexParts);
-        if (start == null && startOffset !== null) {
+        if (start === null && startOffset !== null) {
           start = this.getLineOffset(line, startOffset);
           startIndent = line.firstNonWhitespaceCharacterIndex;
-        } else if (start != null) {
+        } else if (start !== null) {
           const endOffset = multiline.end(line, startIndent, regexParts);
           if (endOffset !== null) {
             ranges.push(this.document.validateRange(new Range(start, this.getLineOffset(line, endOffset))));
@@ -330,19 +355,27 @@ export default class CensoringProvider {
           }
         }
 
-        if (line.lineNumber == this.document.lineCount - 1) break;
+        if (line.lineNumber === this.document.lineCount - 1) {
+          break;
+        }
         line = this.document.lineAt(line.lineNumber + 1);
       }
 
-      if (start != null) ranges.push(this.document.validateRange(new Range(start, line.range.end)));
+      if (start !== null) {
+        ranges.push(this.document.validateRange(new Range(start, line.range.end)));
+      }
     }
 
     return ranges;
   }
 
   public getLineOffset(line: TextLine, offset: number): Position {
-    if (offset == -1) return new Position(line.lineNumber - 1, Infinity);
-    else if (offset == Infinity) return new Position(line.lineNumber + 1, 0);
-    else return new Position(line.lineNumber, offset);
+    if (offset === -1) {
+      return new Position(line.lineNumber - 1, Infinity);
+    } else if (offset === Infinity) {
+      return new Position(line.lineNumber + 1, 0);
+    } else {
+      return new Position(line.lineNumber, offset);
+    }
   }
 }

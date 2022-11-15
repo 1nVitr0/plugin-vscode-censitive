@@ -24,6 +24,8 @@ let instanceMap: CensoringProvider[] = [];
 let watchers: FileSystemWatcher[] = [];
 
 export function activate(context: ExtensionContext) {
+  const { config, userHome } = configurationProvider;
+
   context.subscriptions.push(
     languages.registerCodeLensProvider(
       { pattern: "**/*" },
@@ -34,16 +36,18 @@ export function activate(context: ExtensionContext) {
       window.showInformationMessage(`Censoring ${enabled ? "enabled" : "disabled"}.`);
     }),
     commands.registerTextEditorCommand("censitive.copyCensoredRange", (editor, _, range?: Range) => {
-      if (!range)
+      if (!range) {
         return window.showErrorMessage("No censored field found. This command should not be triggered manually.");
+      }
 
       const text = editor.document.getText(range);
       env.clipboard.writeText(text);
       window.showInformationMessage("Censored field copied to clipboard!");
     }),
     commands.registerTextEditorCommand("censitive.displayCensoredRange", (editor, _, range?: Range) => {
-      if (!range)
+      if (!range) {
         return window.showErrorMessage("No censored field found. This command should not be triggered manually.");
+      }
 
       findOrCreateInstance(editor.document).then((censoring) => {
         censoring.addVisibleRange(range);
@@ -51,7 +55,7 @@ export function activate(context: ExtensionContext) {
         setTimeout(() => {
           censoring.removeVisibleRange(range);
           censoring.applyCensoredRanges();
-        }, configurationProvider.getConfig().showTimeoutSeconds * 1000);
+        }, config.showTimeoutSeconds * 1000);
       });
     })
   );
@@ -69,6 +73,11 @@ export function activate(context: ExtensionContext) {
       return configWatcher;
     }) || [])
   );
+  if (userHome) {
+    const globalConfigWatcher = workspace.createFileSystemWatcher(new RelativePattern(userHome, ".censitive"));
+    globalConfigWatcher.onDidChange(onCensorConfigChanged.bind(onCensorConfigChanged, Uri.file(userHome)));
+    watchers.push(globalConfigWatcher);
+  }
 
   ConfigurationProvider.init().then(() => onVisibleEditorsChanged(window.visibleTextEditors));
 }
@@ -96,11 +105,7 @@ async function findOrCreateInstance(document: TextDocument) {
   const found = instanceMap.find(({ document: refDoc }) => refDoc === document);
 
   if (!found) {
-    const instance = new CensoringProvider(
-      document,
-      configurationProvider.getCensorOptions(),
-      censoringCodeLensProvider
-    );
+    const instance = new CensoringProvider(document, configurationProvider.censorOptions, censoringCodeLensProvider);
     instanceMap.push(instance);
   }
 
@@ -119,7 +124,7 @@ function onConfigurationChange() {
   ConfigurationProvider.updateConfig().then(reactivate);
 }
 
-function onCensorConfigChanged(folder: WorkspaceFolder, uri: Uri) {
+function onCensorConfigChanged(folder: WorkspaceFolder | Uri, uri: Uri) {
   ConfigurationProvider.updateCensoringKeys(folder, uri);
   onVisibleEditorsChanged(window.visibleTextEditors);
 }
@@ -136,9 +141,10 @@ function onCloseDocument(document: TextDocument) {
 }
 
 function onVisibleEditorsChanged(visibleEditors: readonly TextEditor[]) {
+  const { config } = configurationProvider;
   const visibleDocuments = visibleEditors.map(({ document }) => document);
 
   // Only update visible TextEditors with valid configuration
-  const validDocuments = visibleDocuments.filter((doc) => isValidDocument(configurationProvider.getConfig(), doc));
+  const validDocuments = visibleDocuments.filter((doc) => isValidDocument(config, doc));
   doCensoring(validDocuments);
 }
