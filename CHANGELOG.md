@@ -1,3 +1,15 @@
+# [1.2.0](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.1.4...v1.2.0) (2022-11-15)
+
+
+### Bug Fixes
+
+* apply global config relative to workspace ([16408d3](https://github.com/1nVitr0/plugin-vscode-censitive/commit/16408d3db3abd9dda32ff248fd31f154c9b573d0))
+
+
+### Features
+
+* use global censoring config in home directory ([5ab9077](https://github.com/1nVitr0/plugin-vscode-censitive/commit/5ab907717c064a242df71b9be881e4f213f317fb))
+
 ## [1.1.4](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.1.3...v1.1.4) (2022-06-20)
 
 
