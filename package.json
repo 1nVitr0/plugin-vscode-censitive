@@ -25,7 +25,7 @@
     "passwords"
   ],
   "activationEvents": [
-    "workspaceContains:**/.censitive"
+    "*"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -58,7 +58,7 @@
           "description": "Merge global and local censitive files",
           "type": "boolean"
         },
-        "censtive.censoring": {
+        "censitive.censoring": {
           "type": "object",
           "default": {
             "color": "theme.editorInfo.background",

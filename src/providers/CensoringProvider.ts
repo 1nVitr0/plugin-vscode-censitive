@@ -164,6 +164,8 @@ export default class CensoringProvider {
   }
 
   public async censor(fast = false) {
+    const { config } = this.configurationProvider;
+
     // We need to reapply the decorations when the visibility changes
     if (this.document.version === this.documentVersion) {
       this.applyCensoredRanges();
@@ -180,7 +182,7 @@ export default class CensoringProvider {
     const visibleEditors = window.visibleTextEditors.filter(({ document }) => document.uri === uri);
     const visibleRanges = visibleEditors.reduce<Range[]>((ranges, editor) => [...ranges, ...editor.visibleRanges], []);
 
-    if (fast && lineCount > this.configurationProvider.getConfig().useFastModeMinLines) {
+    if (fast && lineCount > config.useFastModeMinLines) {
       await this.onUpdate(this.document, visibleRanges);
     }
     await this.onUpdate(this.document);

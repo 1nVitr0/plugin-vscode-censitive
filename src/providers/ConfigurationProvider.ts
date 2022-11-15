@@ -2,6 +2,7 @@ import { readFile } from "fs";
 import { promisify } from "util";
 import {
   DocumentSelector,
+  env,
   languages,
   RelativePattern,
   TextDocument,
@@ -39,16 +40,25 @@ export const defaults: Configuration = {
   },
 };
 
+function isWorkspaceFolder(folder: WorkspaceFolder | Uri): folder is WorkspaceFolder {
+  return (folder as WorkspaceFolder).uri !== undefined;
+}
+
 export default class ConfigurationProvider {
   public static censorKeys: { [workspace: string]: CensoringKeys[] } = {};
   private static _config: WorkspaceConfiguration;
   private static _globalWorkspaceName = "global";
-
-  public static get globalCensorKeys(): CensoringKeys[] {
-    return ConfigurationProvider.censorKeys[ConfigurationProvider._globalWorkspaceName] ?? [];
-  }
+  private static _userHome = env.appRoot;
 
   public static async init() {
+    if (ConfigurationProvider._userHome) {
+      try {
+        // Try to set the correct user home path
+        ConfigurationProvider._userHome = require("os").homedir();
+      } catch (e) {
+        window.showErrorMessage(".censitive could not get user home directory, global config will not be loaded");
+      }
+    }
     await this.updateConfig();
     await this.loadCensoringConfigFile();
   }
@@ -58,7 +68,7 @@ export default class ConfigurationProvider {
   }
 
   public static async updateCensoringKeys(workspace: WorkspaceFolder | Uri, configFile?: Uri) {
-    const name = "name" in workspace ? workspace.name : ConfigurationProvider._globalWorkspaceName;
+    const name = isWorkspaceFolder(workspace) ? workspace.name : ConfigurationProvider._globalWorkspaceName;
     if (!configFile) {
       return (ConfigurationProvider.censorKeys[name] = []);
     }
@@ -71,7 +81,9 @@ export default class ConfigurationProvider {
         .filter((line) => line.trim() && line[0] !== "#")
         .map((line) => {
           const [pattern, keys] = line.split(":");
-          const selector = { pattern: new RelativePattern(workspace, pattern) };
+          const selector = isWorkspaceFolder(workspace)
+            ? { pattern: new RelativePattern(workspace, pattern) }
+            : pattern;
           return { selector, keys: keys.split(/,\s*/g) };
         }));
     } catch (e) {
@@ -87,9 +99,24 @@ export default class ConfigurationProvider {
       const [configFile] = await workspace.findFiles(new RelativePattern(folder, ".censitive"), null, 1);
       await ConfigurationProvider.updateCensoringKeys(folder, configFile);
     }
+    if (ConfigurationProvider._userHome) {
+      const globalConfigFile = Uri.joinPath(Uri.file(ConfigurationProvider._userHome), "/.censitive");
+      const { size } = await workspace.fs.stat(globalConfigFile);
+      if (size > 0) {
+        await ConfigurationProvider.updateCensoringKeys(globalConfigFile, globalConfigFile);
+      }
+    }
   }
 
-  public getCensorOptions(): CensorOptions {
+  public get userHome(): string {
+    return ConfigurationProvider._userHome;
+  }
+
+  public get globalCensorKeys(): CensoringKeys[] {
+    return ConfigurationProvider.censorKeys[ConfigurationProvider._globalWorkspaceName] ?? [];
+  }
+
+  public get censorOptions(): CensorOptions {
     if (typeof ConfigurationProvider._config?.censoring === "object") {
       return { ...ConfigurationProvider._config?.censoring } as CensorOptions;
     }
@@ -104,7 +131,7 @@ export default class ConfigurationProvider {
     return !enabled;
   }
 
-  public getConfig(): Configuration {
+  public get config(): Configuration {
     return ((ConfigurationProvider._config as unknown) || defaults) as Configuration;
   }
 
@@ -118,7 +145,7 @@ export default class ConfigurationProvider {
 
   public isDocumentInCensorConfig(document: TextDocument, mergeGlobal?: boolean): boolean {
     if (mergeGlobal === undefined) {
-      mergeGlobal = this.getConfig().mergeGlobalCensoring;
+      mergeGlobal = this.config.mergeGlobalCensoring;
     }
     const folder = workspace.getWorkspaceFolder(document.uri);
     const censorKeys = this.getCensoringKeysForFolder(folder, mergeGlobal);
@@ -127,8 +154,9 @@ export default class ConfigurationProvider {
       return false;
     }
 
+    const { match } = languages;
     for (const { selector } of censorKeys) {
-      if (languages.match(selector, document) > 0) {
+      if (match(selector, document) > 0) {
         return true;
       }
     }
@@ -138,7 +166,7 @@ export default class ConfigurationProvider {
 
   public getCensoredKeys(document: TextDocument, mergeGlobal?: boolean): string[] {
     if (mergeGlobal === undefined) {
-      mergeGlobal = this.getConfig().mergeGlobalCensoring;
+      mergeGlobal = this.config.mergeGlobalCensoring;
     }
     const folder = workspace.getWorkspaceFolder(document.uri);
     const censorKeys = this.getCensoringKeysForFolder(folder, mergeGlobal);
@@ -147,22 +175,32 @@ export default class ConfigurationProvider {
       return [];
     }
 
-    return censorKeys.reduce(
-      (acc, { selector, keys }) => (languages.match(selector, document) > 0 ? [...acc, ...keys] : acc),
-      [] as string[]
-    );
+    return censorKeys.reduce((acc, { selector, keys }) => {
+      return languages.match(selector, document) > 0 ? [...acc, ...keys] : acc;
+    }, [] as string[]);
   }
 
   private getCensoringKeysForFolder(folder?: WorkspaceFolder, mergeGlobal = true): CensoringKeys[] {
     const censorKeys = (folder && ConfigurationProvider.censorKeys[folder.name]) ?? [];
     if (mergeGlobal || !folder || !ConfigurationProvider.censorKeys[folder.name]) {
       censorKeys.push(
-        ...ConfigurationProvider.globalCensorKeys.filter((censorKey) =>
+        ...this.globalCensorKeys.filter((censorKey) =>
           censorKeys.every((key) => !ConfigurationProvider.isCensoringKeyEqual(key, censorKey))
         )
       );
     }
 
-    return censorKeys;
+    return censorKeys.map((censorKey) => {
+      const { keys, selector } = censorKey;
+      if (typeof selector === "string") {
+        const base = folder ?? "**";
+        return {
+          keys,
+          selector: { pattern: new RelativePattern(base, selector) },
+        };
+      }
+
+      return censorKey;
+    });
   }
 }

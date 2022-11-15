@@ -18,21 +18,13 @@ import CensoringCodeLensProvider from "./providers/CensoringCodeLensProvider";
 import CensoringProvider from "./providers/CensoringProvider";
 import ConfigurationProvider, { Configuration } from "./providers/ConfigurationProvider";
 
-let userHome = env.appRoot;
 let configurationProvider = new ConfigurationProvider();
 let censoringCodeLensProvider: CensoringCodeLensProvider;
 let instanceMap: CensoringProvider[] = [];
 let watchers: FileSystemWatcher[] = [];
 
 export function activate(context: ExtensionContext) {
-  if (userHome) {
-    try {
-      // Try to set the correct user home path
-      userHome = require("os").homedir();
-    } catch (e) {
-      window.showErrorMessage(".censitive could not get user home directory, global config will not be loaded");
-    }
-  }
+  const { config, userHome } = configurationProvider;
 
   context.subscriptions.push(
     languages.registerCodeLensProvider(
@@ -63,7 +55,7 @@ export function activate(context: ExtensionContext) {
         setTimeout(() => {
           censoring.removeVisibleRange(range);
           censoring.applyCensoredRanges();
-        }, configurationProvider.getConfig().showTimeoutSeconds * 1000);
+        }, config.showTimeoutSeconds * 1000);
       });
     })
   );
@@ -113,11 +105,7 @@ async function findOrCreateInstance(document: TextDocument) {
   const found = instanceMap.find(({ document: refDoc }) => refDoc === document);
 
   if (!found) {
-    const instance = new CensoringProvider(
-      document,
-      configurationProvider.getCensorOptions(),
-      censoringCodeLensProvider
-    );
+    const instance = new CensoringProvider(document, configurationProvider.censorOptions, censoringCodeLensProvider);
     instanceMap.push(instance);
   }
 
@@ -153,9 +141,10 @@ function onCloseDocument(document: TextDocument) {
 }
 
 function onVisibleEditorsChanged(visibleEditors: readonly TextEditor[]) {
+  const { config } = configurationProvider;
   const visibleDocuments = visibleEditors.map(({ document }) => document);
 
   // Only update visible TextEditors with valid configuration
-  const validDocuments = visibleDocuments.filter((doc) => isValidDocument(configurationProvider.getConfig(), doc));
+  const validDocuments = visibleDocuments.filter((doc) => isValidDocument(config, doc));
   doCensoring(validDocuments);
 }
