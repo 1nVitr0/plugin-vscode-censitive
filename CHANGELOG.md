@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.0...v1.2.1) (2022-12-18)
+
+
+### Bug Fixes
+
+* allow `//` in `.censitive` files ([3f16364](https://github.com/1nVitr0/plugin-vscode-censitive/commit/3f16364e85accd17fbc66278b44577823dcef88f))
+
 # [1.2.0](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.1.4...v1.2.0) (2022-11-15)
 
 
