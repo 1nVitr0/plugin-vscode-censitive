@@ -78,7 +78,7 @@ export default class ConfigurationProvider {
       return (ConfigurationProvider.censorKeys[name] = content
         .toString()
         .split(/\r?\n/g)
-        .filter((line) => line.trim() && line[0] !== "#")
+        .filter((line) => line.trim() && !line.startsWith("#") && !line.startsWith("//"))
         .map((line) => {
           const [pattern, keys] = line.split(":");
           const selector = isWorkspaceFolder(workspace)
