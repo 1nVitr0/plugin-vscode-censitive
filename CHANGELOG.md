@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.1...v1.2.2) (2022-12-21)
+
+
+### Bug Fixes
+
+* update svg badges in readme ([4ea9251](https://github.com/1nVitr0/plugin-vscode-censitive/commit/4ea9251c0500af428dcaa33298a949bac812a481))
+
 ## [1.2.1](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.0...v1.2.1) (2022-12-18)
 
 
