@@ -1,6 +1,6 @@
-[![Visual Studio Code extension 1nVitr0.censitive](https://vsmarketplacebadge.apphb.com/version/1nVitr0.censitive.svg)](https://marketplace.visualstudio.com/items?itemName=1nVitr0.censitive)
-[![Installs for Visual Studio Code extension 1nVitr0.censitive](https://vsmarketplacebadge.apphb.com/installs/1nVitr0.censitive.svg)](https://marketplace.visualstudio.com/items?itemName=1nVitr0.censitive)
-[![Rating for Visual Studio Code extension 1nVitr0.censitive](https://vsmarketplacebadge.apphb.com/rating/1nVitr0.censitive.svg)](https://marketplace.visualstudio.com/items?itemName=1nVitr0.censitive)
+[![Visual Studio Code extension 1nVitr0.censitive](https://img.shields.io/visual-studio-marketplace/v/1nVitr0.censitive?logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=1nVitr0.censitive)
+[![Installs for Visual Studio Code extension 1nVitr0.censitive](https://img.shields.io/visual-studio-marketplace/i/1nVitr0.censitive?logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=1nVitr0.censitive)
+[![Rating for Visual Studio Code extension 1nVitr0.censitive](https://img.shields.io/visual-studio-marketplace/r/1nVitr0.censitive?logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=1nVitr0.censitive)
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 
 # Censitive (Hide Passwords and Tokens)
