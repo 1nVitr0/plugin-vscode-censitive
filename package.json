@@ -4,6 +4,7 @@
   "description": "automatically censor sensitive information like passwords, tokens and keys",
   "author": "1nVitr0",
   "publisher": "1nVitr0",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/1nVitr0/plugin-vscode-censitive"
