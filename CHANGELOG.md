@@ -1,3 +1,10 @@
+## [1.2.3](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.2...v1.2.3) (2023-02-15)
+
+
+### Bug Fixes
+
+* deploy to OpenVSX ([793a3db](https://github.com/1nVitr0/plugin-vscode-censitive/commit/793a3db4ca905df120352b487207239c470c96c1))
+
 ## [1.2.2](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.1...v1.2.2) (2022-12-21)
 
 
