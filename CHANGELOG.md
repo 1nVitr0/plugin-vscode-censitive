@@ -1,3 +1,10 @@
+## [1.2.4](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.3...v1.2.4) (2023-02-15)
+
+
+### Bug Fixes
+
+* trigger release ([16dba90](https://github.com/1nVitr0/plugin-vscode-censitive/commit/16dba90439e3da2faa7c3f8c56df1677c067242b))
+
 ## [1.2.3](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.2...v1.2.3) (2023-02-15)
 
 
