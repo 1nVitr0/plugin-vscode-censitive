@@ -5,6 +5,13 @@
 
 * censor files without active workspace ([0ed489a](https://github.com/1nVitr0/plugin-vscode-censitive/commit/0ed489ae90dff3d0a8a611d9eecd1eda6ea15f14))
 
+## [1.2.5](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.4...v1.2.5) (2023-03-22)
+
+
+### Bug Fixes
+
+* censor files without active workspace ([0ed489a](https://github.com/1nVitr0/plugin-vscode-censitive/commit/0ed489ae90dff3d0a8a611d9eecd1eda6ea15f14))
+
 ## [1.2.4](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.3...v1.2.4) (2023-02-15)
 
 
