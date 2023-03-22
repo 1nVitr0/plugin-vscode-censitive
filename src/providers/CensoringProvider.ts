@@ -91,18 +91,18 @@ export default class CensoringProvider {
   }
 
   public static buildCensorKeyRegexCode(keys: string[], languageId?: string): RegExp {
-    const { key, assignment, value } = CensoringProvider.buildSensorKeyRegex(keys, languageId);
+    const { key, assignment, value } = CensoringProvider.buildCensorKeyRegex(keys, languageId);
     return new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
   }
 
   public static buildCensorKeyRegexGeneric(keys: string[], languageId?: string) {
     const additionalValues = ["([^\\s\\v\\r\\n,;]*)"];
-    const { key, assignment, value } = CensoringProvider.buildSensorKeyRegex(keys, languageId, ...additionalValues);
+    const { key, assignment, value } = CensoringProvider.buildCensorKeyRegex(keys, languageId, ...additionalValues);
 
     return new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
   }
 
-  public static buildSensorKeyRegex(
+  public static buildCensorKeyRegex(
     keys: string[],
     languageId: string = "default",
     ...additionalValueExpressions: string[]
@@ -336,7 +336,7 @@ export default class CensoringProvider {
 
     const ranges = [];
     const multiline = CensoringProvider.multilineValues[languageId];
-    const regexParts = CensoringProvider.buildSensorKeyRegex(keys, languageId);
+    const regexParts = CensoringProvider.buildCensorKeyRegex(keys, languageId);
 
     if (multiline) {
       let start: Position | null = null;
