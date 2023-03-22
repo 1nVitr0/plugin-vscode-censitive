@@ -193,10 +193,12 @@ export default class ConfigurationProvider {
     return censorKeys.map((censorKey) => {
       const { keys, selector } = censorKey;
       if (typeof selector === "string") {
-        const base = folder ?? "**";
+        const dirGlob = selector.startsWith("**") || selector.startsWith("./**") ? "" : "**/";
         return {
           keys,
-          selector: { pattern: new RelativePattern(base, selector) },
+          selector: {
+            pattern: folder ? new RelativePattern(folder, selector) : `${dirGlob}${selector}`,
+          },
         };
       }
 
