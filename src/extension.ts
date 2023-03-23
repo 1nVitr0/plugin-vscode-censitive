@@ -23,7 +23,8 @@ let censoringCodeLensProvider: CensoringCodeLensProvider;
 let instanceMap: CensoringProvider[] = [];
 let watchers: FileSystemWatcher[] = [];
 
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext) {
+  await ConfigurationProvider.init();
   const { config, userHome } = configurationProvider;
 
   context.subscriptions.push(
@@ -74,12 +75,13 @@ export function activate(context: ExtensionContext) {
     }) || [])
   );
   if (userHome) {
+    const userHomeUri = Uri.file(userHome);
     const globalConfigWatcher = workspace.createFileSystemWatcher(new RelativePattern(userHome, ".censitive"));
-    globalConfigWatcher.onDidChange(onCensorConfigChanged.bind(onCensorConfigChanged, Uri.file(userHome)));
     watchers.push(globalConfigWatcher);
+    globalConfigWatcher.onDidChange(
+      onCensorConfigChanged.bind(onCensorConfigChanged, userHomeUri, Uri.joinPath(userHomeUri, ".censitive"))
+    );
   }
-
-  ConfigurationProvider.init().then(() => onVisibleEditorsChanged(window.visibleTextEditors));
 }
 
 export function deactivate() {
