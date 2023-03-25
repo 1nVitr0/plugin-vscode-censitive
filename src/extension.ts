@@ -23,8 +23,11 @@ let censoringCodeLensProvider: CensoringCodeLensProvider;
 let instanceMap: CensoringProvider[] = [];
 let watchers: FileSystemWatcher[] = [];
 
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext) {
+  await ConfigurationProvider.init();
   const { config, userHome } = configurationProvider;
+
+  onVisibleEditorsChanged(window.visibleTextEditors);
 
   context.subscriptions.push(
     languages.registerCodeLensProvider(
@@ -68,18 +71,25 @@ export function activate(context: ExtensionContext) {
   watchers.push(
     ...(workspace.workspaceFolders?.map((folder) => {
       const configWatcher = workspace.createFileSystemWatcher(new RelativePattern(folder, ".censitive"));
-      configWatcher.onDidChange(onCensorConfigChanged.bind(onCensorConfigChanged, folder));
+      context.subscriptions.push(
+        configWatcher.onDidCreate(onCensorConfigChanged.bind(null, folder)),
+        configWatcher.onDidChange(onCensorConfigChanged.bind(null, folder)),
+        configWatcher.onDidDelete(() => onCensorConfigChanged(folder, null))
+      );
 
       return configWatcher;
     }) || [])
   );
   if (userHome) {
-    const globalConfigWatcher = workspace.createFileSystemWatcher(new RelativePattern(userHome, ".censitive"));
-    globalConfigWatcher.onDidChange(onCensorConfigChanged.bind(onCensorConfigChanged, Uri.file(userHome)));
+    const userHomeUri = Uri.file(userHome);
+    const globalConfigWatcher = workspace.createFileSystemWatcher(new RelativePattern(userHomeUri, ".censitive"));
     watchers.push(globalConfigWatcher);
+    context.subscriptions.push(
+      globalConfigWatcher.onDidCreate(onCensorConfigChanged.bind(null, userHomeUri)),
+      globalConfigWatcher.onDidChange(onCensorConfigChanged.bind(null, userHomeUri)),
+      globalConfigWatcher.onDidDelete(() => onCensorConfigChanged(userHomeUri, null))
+    );
   }
-
-  ConfigurationProvider.init().then(() => onVisibleEditorsChanged(window.visibleTextEditors));
 }
 
 export function deactivate() {
@@ -112,10 +122,12 @@ async function findOrCreateInstance(document: TextDocument) {
   return found || instanceMap[instanceMap.length - 1];
 }
 
-async function doCensoring(documents: TextDocument[] = []) {
+async function doCensoring(documents: TextDocument[] = [], configChanged = false) {
   if (documents.length) {
     await Promise.all(
-      documents.map((document) => findOrCreateInstance(document).then((instance) => instance.censor(true)))
+      documents.map((document) =>
+        findOrCreateInstance(document).then((instance) => instance.censor(true, configChanged))
+      )
     );
   }
 }
@@ -124,9 +136,9 @@ function onConfigurationChange() {
   ConfigurationProvider.updateConfig().then(reactivate);
 }
 
-function onCensorConfigChanged(folder: WorkspaceFolder | Uri, uri: Uri) {
+function onCensorConfigChanged(folder: WorkspaceFolder | Uri, uri: Uri | null) {
   ConfigurationProvider.updateCensoringKeys(folder, uri);
-  onVisibleEditorsChanged(window.visibleTextEditors);
+  onVisibleEditorsChanged(window.visibleTextEditors, true);
 }
 
 function onCloseDocument(document: TextDocument) {
@@ -140,11 +152,20 @@ function onCloseDocument(document: TextDocument) {
   }
 }
 
-function onVisibleEditorsChanged(visibleEditors: readonly TextEditor[]) {
+async function onVisibleEditorsChanged(visibleEditors: readonly TextEditor[], configChanged = false) {
   const { config } = configurationProvider;
   const visibleDocuments = visibleEditors.map(({ document }) => document);
 
   // Only update visible TextEditors with valid configuration
   const validDocuments = visibleDocuments.filter((doc) => isValidDocument(config, doc));
-  doCensoring(validDocuments);
+  await doCensoring(validDocuments, configChanged);
+
+  if (configChanged) {
+    const invalidated = configChanged ? instanceMap.filter(({ document }) => !isValidDocument(config, document)) : [];
+    for (const instance of invalidated) {
+      const index = instanceMap.findIndex((i) => i === instance);
+      instanceMap.splice(index, 1);
+      instance.dispose();
+    }
+  }
 }
