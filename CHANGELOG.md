@@ -1,3 +1,14 @@
+## [1.2.6](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.5...v1.2.6) (2023-03-25)
+
+
+### Bug Fixes
+
+* censor visible editors on launch ([d05fc51](https://github.com/1nVitr0/plugin-vscode-censitive/commit/d05fc518b1b6acac2b8a04fc52688b8da5e7ad47))
+* dispose censoring when file is removed from config ([311737a](https://github.com/1nVitr0/plugin-vscode-censitive/commit/311737a618d6b45bf0c8e86918f40892c0de44c8))
+* global censitive configuration was permanently merged into workspaces ([a091aea](https://github.com/1nVitr0/plugin-vscode-censitive/commit/a091aea4e8037a301b2ebf2574ab13f5d79d0a48))
+* update global and workspace censoring config on create/delete ([4b76cb3](https://github.com/1nVitr0/plugin-vscode-censitive/commit/4b76cb33d1e556e354fdcb6562bdb6e6ebda0aaf))
+* watch global `.censtitive` file in userhome ([2b9126d](https://github.com/1nVitr0/plugin-vscode-censitive/commit/2b9126d6746ebb1f6fa0bccad900f78f735211dc))
+
 ## [1.2.5](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.4...v1.2.5) (2023-03-22)
 
 
