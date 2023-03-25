@@ -55,6 +55,9 @@ The keys are matched case insensitive: Its basic format is:
 <globPattern>:[keyRegex]
 ```
 
+The glob pattern is always taken relative to the active workspace(s).
+If there is no active workspace, all patterns are automatically prepended with `**/`.
+
 For example:
 
 ```censitive
@@ -69,7 +72,7 @@ To completely hide the content of specific files, the shorthand `*` can be used 
 
 ```censitive
 # Hide the content of private keys
-id_rsa:*
+**/id_rsa:*
 ```
 
 ## Known Issues
