@@ -1,3 +1,10 @@
+## [1.2.7](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.6...v1.2.7) (2023-03-25)
+
+
+### Bug Fixes
+
+* document `**/` glob patterns ([4848888](https://github.com/1nVitr0/plugin-vscode-censitive/commit/48488883e8fa1a2e9827824647cb070f132410e8))
+
 ## [1.2.6](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.5...v1.2.6) (2023-03-25)
 
 
