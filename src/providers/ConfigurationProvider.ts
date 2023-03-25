@@ -3,6 +3,7 @@ import { promisify } from "util";
 import {
   DocumentSelector,
   env,
+  FileStat,
   languages,
   RelativePattern,
   TextDocument,
@@ -67,7 +68,7 @@ export default class ConfigurationProvider {
     ConfigurationProvider._config = workspace.getConfiguration("censitive");
   }
 
-  public static async updateCensoringKeys(workspace: WorkspaceFolder | Uri, configFile?: Uri) {
+  public static async updateCensoringKeys(workspace: WorkspaceFolder | Uri, configFile?: Uri | null) {
     const name = isWorkspaceFolder(workspace) ? workspace.name : ConfigurationProvider._globalWorkspaceName;
     if (!configFile) {
       return (ConfigurationProvider.censorKeys[name] = []);
@@ -94,14 +95,17 @@ export default class ConfigurationProvider {
   }
 
   private static async loadCensoringConfigFile() {
+    const { stat } = workspace.fs;
     const workspaces = workspace.workspaceFolders || [];
     for (const folder of workspaces) {
       const [configFile] = await workspace.findFiles(new RelativePattern(folder, ".censitive"), null, 1);
       await ConfigurationProvider.updateCensoringKeys(folder, configFile);
     }
     if (ConfigurationProvider._userHome) {
-      const globalConfigFile = Uri.joinPath(Uri.file(ConfigurationProvider._userHome), "/.censitive");
-      const { size } = await workspace.fs.stat(globalConfigFile);
+      const globalConfigFile = Uri.joinPath(Uri.file(ConfigurationProvider._userHome), ".censitive");
+      const { size } = await new Promise<FileStat>((resolve, reject) =>
+        workspace.fs.stat(globalConfigFile).then(resolve, reject)
+      ).catch(() => ({ size: 0 }));
       if (size > 0) {
         await ConfigurationProvider.updateCensoringKeys(globalConfigFile, globalConfigFile);
       }
@@ -181,7 +185,7 @@ export default class ConfigurationProvider {
   }
 
   private getCensoringKeysForFolder(folder?: WorkspaceFolder, mergeGlobal = true): CensoringKeys[] {
-    const censorKeys = (folder && ConfigurationProvider.censorKeys[folder.name]) ?? [];
+    const censorKeys = [...((folder && ConfigurationProvider.censorKeys[folder.name]) ?? [])];
     if (mergeGlobal || !folder || !ConfigurationProvider.censorKeys[folder.name]) {
       censorKeys.push(
         ...this.globalCensorKeys.filter((censorKey) =>
