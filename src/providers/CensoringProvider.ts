@@ -163,11 +163,11 @@ export default class CensoringProvider {
     this.censorBar.decoration.dispose();
   }
 
-  public async censor(fast = false) {
+  public async censor(fast = false, configChanged = false) {
     const { config } = this.configurationProvider;
 
     // We need to reapply the decorations when the visibility changes
-    if (this.document.version === this.documentVersion) {
+    if (this.document.version === this.documentVersion && !configChanged) {
       this.applyCensoredRanges();
     }
 
@@ -183,9 +183,9 @@ export default class CensoringProvider {
     const visibleRanges = visibleEditors.reduce<Range[]>((ranges, editor) => [...ranges, ...editor.visibleRanges], []);
 
     if (fast && lineCount > config.useFastModeMinLines) {
-      await this.onUpdate(this.document, visibleRanges);
+      await this.onUpdate(this.document, visibleRanges, configChanged);
     }
-    await this.onUpdate(this.document);
+    await this.onUpdate(this.document, null, configChanged);
 
     this.documentVersion = this.document.version;
   }
@@ -236,23 +236,30 @@ export default class CensoringProvider {
   private async onUpdate(
     document = this.document,
     ranges?: Range[] | null,
-    contentChanges?: readonly TextDocumentContentChangeEvent[]
+    contentChanges?: readonly TextDocumentContentChangeEvent[] | boolean
   ) {
     const { version, uri } = document;
-    if (this.disposed || uri.toString() !== this.document.uri.toString() || version === this.documentVersion) {
+    if (
+      this.disposed ||
+      uri.toString() !== this.document.uri.toString() ||
+      (version === this.documentVersion && contentChanges !== true)
+    ) {
       return;
     }
 
     const keys = this.configurationProvider.getCensoredKeys(document);
     if (keys.includes("*")) {
       this.documentVersion = version;
-      return this.censor();
+      return this.censor(false, contentChanges === true);
     }
 
     const promises: Promise<number>[] = [];
     let deletions = 0;
 
-    if (ranges) {
+    if (contentChanges === true) {
+      this.censoredRanges = [];
+      promises.push(this.updateCensoredRanges(document.getText(), version));
+    } else if (ranges) {
       for (const range of ranges) {
         promises.push(this.updateCensoredRanges(document.getText(range), version, range.start));
       }
@@ -282,7 +289,7 @@ export default class CensoringProvider {
     }
 
     const changes = await Promise.all(promises);
-    if (deletions || changes.reduce((sum, n) => sum + n, 0) > 0) {
+    if (contentChanges === true || deletions || changes.reduce((sum, n) => sum + n, 0) > 0) {
       this.applyCensoredRanges();
     }
 
