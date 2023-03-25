@@ -157,4 +157,13 @@ async function onVisibleEditorsChanged(visibleEditors: readonly TextEditor[], co
   // Only update visible TextEditors with valid configuration
   const validDocuments = visibleDocuments.filter((doc) => isValidDocument(config, doc));
   await doCensoring(validDocuments, configChanged);
+
+  if (configChanged) {
+    const invalidated = configChanged ? instanceMap.filter(({ document }) => !isValidDocument(config, document)) : [];
+    for (const instance of invalidated) {
+      const index = instanceMap.findIndex((i) => i === instance);
+      instanceMap.splice(index, 1);
+      instance.dispose();
+    }
+  }
 }
