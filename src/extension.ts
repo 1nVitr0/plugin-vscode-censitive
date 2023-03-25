@@ -27,6 +27,8 @@ export async function activate(context: ExtensionContext) {
   await ConfigurationProvider.init();
   const { config, userHome } = configurationProvider;
 
+  onVisibleEditorsChanged(window.visibleTextEditors);
+
   context.subscriptions.push(
     languages.registerCodeLensProvider(
       { pattern: "**/*" },
