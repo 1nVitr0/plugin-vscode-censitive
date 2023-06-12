@@ -42,21 +42,33 @@ Two code actions "Copy to Clipboard" and "Show Censored Text" are provided for c
 This extension has the following settings:
 
 * `censtitive.enable`: enable/disable this extension
+* `censitive.codeLanguages`: List of code languages that conform to standard code syntax (e.g. `c`, `cpp`, `javascript`, `python`)
+* `censitive.assignmentRegex`: Regex used to detect assignments, usually begin and end with `[\\t ]` to capture surrounding spaces
 * `censtitive.mergeGlobalCensoring`: merge configuration in your home directory with the workspace settings
 * `censitive.useFastModeMinLines`: above this line threshold the document is censored twice: once for the visible range and once for the entire document. This speeds up censoring marginally, but can still be slow
 * `censtitive.censor`: Visual settings used for censoring
 * `censtitive.showTimeoutSeconds`: Controls the time the password is shown after clicking on 'Show Censored Text'
 
 The values being censored can be controlled using a `.censitive` file in the workspace root.
-The keys are matched case insensitive: Its basic format is:
+The keys are matched case insensitive. Its basic format is:
 
 ```censitive
 # Comment
 <globPattern>:[keyRegex]
+
+# Alternatively, for fenced censoring
+<globPattern>:[beginRegex]:[endRegex]
+
+# Or, for more complex censoring
+<globPattern>:[beginRegex],[keyRegex]:[endRegex]
 ```
 
 The glob pattern is always taken relative to the active workspace(s).
 If there is no active workspace, all patterns are automatically prepended with `**/`.
+
+Multiple key regular expressions can be provided, by separating them with a comma `,`.
+When providing fenced censoring, the amount of comma-separated end expressions must match the amount of start expressions.
+Additional start expressions will be used as keys, additional end expressions will be ignored.
 
 For example:
 
@@ -66,6 +78,9 @@ For example:
 
 # Hide all passwords and api tokens in js and ts files
 *.{js,ts}:apitoken,.*password
+
+# Hide Certificates and keys
+*.{pem,crt,key}:BEGIN CERTIFICATE,BEGIN (RSA )?PRIVATE KEY:END CERTIFICATE,END (RSA )?PRIVATE KEY
 ```
 
 To completely hide the content of specific files, the shorthand `*` can be used as the key:

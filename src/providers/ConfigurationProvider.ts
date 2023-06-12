@@ -21,10 +21,18 @@ export interface Configuration {
   useFastModeMinLines: number;
   enable: boolean;
   mergeGlobalCensoring: boolean;
+  codeLanguages: string[];
+  assignmentRegex: Record<string, string> & { default: string };
+}
+
+export interface FencingPattern {
+  start: string;
+  end: string;
 }
 
 export interface CensoringKeys {
   keys: string[];
+  fencingPatterns?: FencingPattern[];
   selector: DocumentSelector;
 }
 
@@ -33,6 +41,40 @@ export const defaults: Configuration = {
   mergeGlobalCensoring: true,
   useFastModeMinLines: 10000,
   showTimeoutSeconds: 10,
+  codeLanguages: [
+    "coffeescript",
+    "c",
+    "cpp",
+    "csharp",
+    "fsharp",
+    "go",
+    "groovy",
+    "handlebars",
+    "html",
+    "java",
+    "javascript",
+    "lua",
+    "objective-c",
+    "objective-cpp",
+    "perl",
+    "php",
+    "jade",
+    "pug",
+    "python",
+    "r",
+    "razor",
+    "ruby",
+    "rust",
+    "slim",
+    "typescript",
+    "vb",
+    "vue",
+    "vue-html",
+  ],
+  assignmentRegex: {
+    default: "[\\t ]*[:=][=>]?[\\t ]*",
+    yaml: "[\\t ]*:[\\t ]*(?!>|\\|)",
+  },
   censoring: {
     color: "theme.editorInfo.background",
     prefix: "🔒",
@@ -81,11 +123,21 @@ export default class ConfigurationProvider {
         .split(/\r?\n/g)
         .filter((line) => line.trim() && !line.startsWith("#") && !line.startsWith("//"))
         .map((line) => {
-          const [pattern, keys] = line.split(":");
+          const [pattern, keyList, fenceList] = line.split(/(?<!\\):/);
+          const keys = keyList.split(/,\s*/g);
+          const fencingPatterns = fenceList
+            ? fenceList
+                .split(/,\s*/g)
+                .map((fence) => ({
+                  start: keys.shift() || "",
+                  end: fence,
+                }))
+                .filter(({ start }) => !!start)
+            : undefined;
           const selector = isWorkspaceFolder(workspace)
             ? { pattern: new RelativePattern(workspace, pattern) }
             : pattern;
-          return { selector, keys: keys.split(/,\s*/g) };
+          return { selector, keys, fencingPatterns };
         }));
     } catch (e) {
       window.showErrorMessage("Failed to load censitive config (see console for more info)");
@@ -168,7 +220,7 @@ export default class ConfigurationProvider {
     return false;
   }
 
-  public getCensoredKeys(document: TextDocument, mergeGlobal?: boolean): string[] {
+  public getCensoredKeys(document: TextDocument, mergeGlobal?: boolean): (string | FencingPattern)[] {
     if (mergeGlobal === undefined) {
       mergeGlobal = this.config.mergeGlobalCensoring;
     }
@@ -179,9 +231,9 @@ export default class ConfigurationProvider {
       return [];
     }
 
-    return censorKeys.reduce((acc, { selector, keys }) => {
-      return languages.match(selector, document) > 0 ? [...acc, ...keys] : acc;
-    }, [] as string[]);
+    return censorKeys.reduce<(string | FencingPattern)[]>((acc, { selector, keys, fencingPatterns = [] }) => {
+      return languages.match(selector, document) > 0 ? [...acc, ...keys, ...fencingPatterns] : acc;
+    }, []);
   }
 
   private getCensoringKeysForFolder(folder?: WorkspaceFolder, mergeGlobal = true): CensoringKeys[] {

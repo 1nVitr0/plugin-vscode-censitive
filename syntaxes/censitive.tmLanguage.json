@@ -18,7 +18,7 @@
     },
     {
       "comment": "Glob Pattern",
-      "match": "^((?:[^:](?:\\:)*)+)(:)(.*)$",
+      "match": "^(.+?)((?<!\\\\):)(.*?)(((?<!\\\\):)(.*))?$",
       "name": "meta.block.censitive meta.entry.censitive",
       "captures": {
         "1": {
@@ -39,13 +39,41 @@
               "include": "#key"
             }
           ]
+        },
+        "5": {
+          "name": "keyword.operator.assignment.censitive"
+        },
+        "6": {
+          "name": "meta.block.censitive meta.fence.censitive",
+          "patterns": [
+            {
+              "include": "#fence"
+            }
+          ]
         }
       }
     }
   ],
   "repository": {
     "key": {
-      "comment": "regex pattern of key to match",
+      "comment": "regex pattern of key to match, or start of a fencing pattern",
+      "match": "([^,]+)(,)?",
+      "captures": {
+        "1": {
+          "name": "constant.regexp string.regexp",
+          "patterns": [
+            {
+              "include": "#regexp"
+            }
+          ]
+        },
+        "2": {
+          "name": "punctuation.separator.comma.censitive"
+        }
+      }
+    },
+    "fence": {
+      "comment": "end of the fencing pattern",
       "match": "([^,]+)(,)?",
       "captures": {
         "1": {
