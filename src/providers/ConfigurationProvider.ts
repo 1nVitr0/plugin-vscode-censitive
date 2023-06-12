@@ -21,6 +21,8 @@ export interface Configuration {
   useFastModeMinLines: number;
   enable: boolean;
   mergeGlobalCensoring: boolean;
+  codeLanguages: string[];
+  assignmentRegex: Record<string, string> & { default: string };
 }
 
 export interface CensoringKeys {
@@ -33,6 +35,40 @@ export const defaults: Configuration = {
   mergeGlobalCensoring: true,
   useFastModeMinLines: 10000,
   showTimeoutSeconds: 10,
+  codeLanguages: [
+    "coffeescript",
+    "c",
+    "cpp",
+    "csharp",
+    "fsharp",
+    "go",
+    "groovy",
+    "handlebars",
+    "html",
+    "java",
+    "javascript",
+    "lua",
+    "objective-c",
+    "objective-cpp",
+    "perl",
+    "php",
+    "jade",
+    "pug",
+    "python",
+    "r",
+    "razor",
+    "ruby",
+    "rust",
+    "slim",
+    "typescript",
+    "vb",
+    "vue",
+    "vue-html",
+  ],
+  assignmentRegex: {
+    default: "[\\t ]*[:=][=>]?[\\t ]*",
+    yaml: "[\\t ]*:[\\t ]*(?!>|\\|)",
+  },
   censoring: {
     color: "theme.editorInfo.background",
     prefix: "🔒",

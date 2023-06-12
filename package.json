@@ -44,6 +44,57 @@
           "description": "Controls if censoring is enabled",
           "type": "boolean"
         },
+        "censitive.codeLanguages": {
+          "default": [
+            "coffeescript",
+            "c",
+            "cpp",
+            "csharp",
+            "fsharp",
+            "go",
+            "groovy",
+            "handlebars",
+            "html",
+            "java",
+            "javascript",
+            "lua",
+            "objective-c",
+            "objective-cpp",
+            "perl",
+            "php",
+            "jade",
+            "pug",
+            "python",
+            "r",
+            "razor",
+            "ruby",
+            "rust",
+            "slim",
+            "typescript",
+            "vb",
+            "vue",
+            "vue-html"
+          ],
+          "description": "List of code languages that conform to standard code syntax (e.g. `c`, `cpp`, `javascript`, `python`)",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "censitive.assignmentRegex": {
+          "default": {
+            "default": "[\\t ]*[:=][=>]?[\\t ]*",
+            "yaml": "[\\t ]*:[\\t ]*(?!>|\\|)"
+          },
+          "description": "Regex used to detect assignments",
+          "type": "object",
+          "items": {
+            "type": "string"
+          },
+          "required": [
+            "default"
+          ]
+        },
         "censitive.showTimeoutSeconds": {
           "default": 10,
           "description": "Time a censored text is shown after clicking 'Show Censored Text'",
