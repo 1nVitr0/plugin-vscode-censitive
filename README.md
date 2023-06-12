@@ -50,15 +50,25 @@ This extension has the following settings:
 * `censtitive.showTimeoutSeconds`: Controls the time the password is shown after clicking on 'Show Censored Text'
 
 The values being censored can be controlled using a `.censitive` file in the workspace root.
-The keys are matched case insensitive: Its basic format is:
+The keys are matched case insensitive. Its basic format is:
 
 ```censitive
 # Comment
 <globPattern>:[keyRegex]
+
+# Alternatively, for fenced censoring
+<globPattern>:[beginRegex]:[endRegex]
+
+# Or, for more complex censoring
+<globPattern>:[beginRegex],[keyRegex]:[endRegex]
 ```
 
 The glob pattern is always taken relative to the active workspace(s).
 If there is no active workspace, all patterns are automatically prepended with `**/`.
+
+Multiple key regular expressions can be provided, by separating them with a comma `,`.
+When providing fenced censoring, the amount of comma-separated end expressions must match the amount of start expressions.
+Additional start expressions will be used as keys, additional end expressions will be ignored.
 
 For example:
 
@@ -68,6 +78,9 @@ For example:
 
 # Hide all passwords and api tokens in js and ts files
 *.{js,ts}:apitoken,.*password
+
+# Hide Certificates and keys
+*.{pem,crt,key}:BEGIN CERTIFICATE,BEGIN (RSA )?PRIVATE KEY:END CERTIFICATE,END (RSA )?PRIVATE KEY
 ```
 
 To completely hide the content of specific files, the shorthand `*` can be used as the key:

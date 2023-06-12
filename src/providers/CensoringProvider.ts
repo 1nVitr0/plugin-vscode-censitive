@@ -11,7 +11,7 @@ import {
 } from "vscode";
 import CensorBar, { CensorOptions } from "../decorations/CensorBar";
 import CensoringCodeLensProvider from "./CensoringCodeLensProvider";
-import ConfigurationProvider from "./ConfigurationProvider";
+import ConfigurationProvider, { FencingPattern } from "./ConfigurationProvider";
 
 type RegexKeyValueParts = { key: string; assignment: string; value: string };
 type MultilineCensor = {
@@ -89,10 +89,14 @@ export default class CensoringProvider {
   public getCensorRegex(keys: string[], languageId?: string): RegExp {
     const { config } = this.configurationProvider;
     const isCodeLanguage = languageId && config.codeLanguages.indexOf(languageId) > -1;
-    const assignmentRegex = config.assignmentRegex[languageId ?? 'default'] || config.assignmentRegex.default;
-    const additionalValues = isCodeLanguage ? []: ["([^\\s\\v\\r\\n,;]*)"];
+    const assignmentRegex = config.assignmentRegex[languageId ?? "default"] || config.assignmentRegex.default;
+    const additionalValues = isCodeLanguage ? [] : ["([^\\s\\v\\r\\n,;]*)"];
 
-    const { key, assignment, value } = CensoringProvider.buildCensorKeyRegex(keys, assignmentRegex, ...additionalValues);
+    const { key, assignment, value } = CensoringProvider.buildCensorKeyRegex(
+      keys,
+      assignmentRegex,
+      ...additionalValues
+    );
 
     return new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
   }
@@ -265,7 +269,9 @@ export default class CensoringProvider {
 
   private async getCensoredRanges(text: string, offset?: Position): Promise<Range[]> {
     const { languageId } = this.document;
-    const keys = this.configurationProvider.getCensoredKeys(this.document);
+    const keys = this.configurationProvider
+      .getCensoredKeys(this.document)
+      .filter((key) => typeof key === "string") as string[];
     if (!keys.length) {
       return [];
     }
@@ -295,11 +301,31 @@ export default class CensoringProvider {
 
   public async getMultilineRanges() {
     const { languageId } = this.document;
-    const keys = this.configurationProvider.getCensoredKeys(this.document);
+    const censoring = this.configurationProvider.getCensoredKeys(this.document);
+    const keys = censoring.filter((key) => typeof key === "string") as string[];
+    const fencePatterns = censoring.filter((key) => typeof key !== "string") as FencingPattern[];
 
     const ranges = [];
-    const multiline = CensoringProvider.multilineValues[languageId];
+    let multiline = CensoringProvider.multilineValues[languageId];
     const regexParts = CensoringProvider.buildCensorKeyRegex(keys, languageId);
+
+    if (fencePatterns) {
+      const regexpStart = new RegExp(fencePatterns.map((f) => `(${f.start})`).join("|"));
+      const regexpEnd = new RegExp(fencePatterns.map((f) => `(${f.end})`).join("|"));
+
+      const { start = undefined, end = undefined } = multiline ?? {};
+
+      multiline = {
+        start(line: TextLine, regex) {
+          const match = regexpStart.exec(line.text);
+          return match ? match.index + match[0].length : start?.(line, regex) ?? null;
+        },
+        end(line: TextLine, indent, regex) {
+          const match = regexpEnd.exec(line.text);
+          return match ? match.index : end?.(line, indent, regex) ?? null;
+        },
+      };
+    }
 
     if (multiline) {
       let start: Position | null = null;
