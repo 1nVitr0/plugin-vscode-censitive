@@ -1,3 +1,11 @@
+# [1.3.0](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.7...v1.3.0) (2023-06-12)
+
+
+### Features
+
+* make code languages & assignment configurable ([782cc88](https://github.com/1nVitr0/plugin-vscode-censitive/commit/782cc88781f7be4e01044f5f73ed376283eaa407))
+* support fenced censored blocks ([8922078](https://github.com/1nVitr0/plugin-vscode-censitive/commit/8922078362cfe7f935acd39fee07647e6017d005))
+
 ## [1.2.7](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.6...v1.2.7) (2023-03-25)
 
 
