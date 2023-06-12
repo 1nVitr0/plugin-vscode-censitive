@@ -28,40 +28,6 @@ const pythonLikeMultiline: MultilineCensor = {
 export default class CensoringProvider {
   public readonly document: TextDocument;
 
-  private static codeLanguages = [
-    "coffeescript",
-    "c",
-    "cpp",
-    "csharp",
-    "fsharp",
-    "go",
-    "groovy",
-    "handlebars",
-    "html",
-    "java",
-    "javascript",
-    "lua",
-    "objective-c",
-    "objective-cpp",
-    "perl",
-    "php",
-    "jade",
-    "pug",
-    "python",
-    "r",
-    "razor",
-    "ruby",
-    "rust",
-    "slim",
-    "typescript",
-    "vb",
-    "vue",
-    "vue-html",
-  ];
-  private static assignmentRegex: Record<string, string> = {
-    default: "[\\t ]*[:=]+[\\t ]*",
-    yaml: "[\\t ]*:[\\t ]*(?!>|\\|)",
-  };
   private static multilineValues: Record<string, MultilineCensor> = {
     python: pythonLikeMultiline,
     toml: pythonLikeMultiline,
@@ -82,32 +48,11 @@ export default class CensoringProvider {
   private configurationProvider = new ConfigurationProvider();
   private listeners: Disposable[] = [];
 
-  public static getCensorRegex(keys: string[], languageId?: string): RegExp {
-    if (languageId && CensoringProvider.codeLanguages.indexOf(languageId) > -1) {
-      return CensoringProvider.buildCensorKeyRegexCode(keys, languageId);
-    } else {
-      return CensoringProvider.buildCensorKeyRegexGeneric(keys, languageId);
-    }
-  }
-
-  public static buildCensorKeyRegexCode(keys: string[], languageId?: string): RegExp {
-    const { key, assignment, value } = CensoringProvider.buildCensorKeyRegex(keys, languageId);
-    return new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
-  }
-
-  public static buildCensorKeyRegexGeneric(keys: string[], languageId?: string) {
-    const additionalValues = ["([^\\s\\v\\r\\n,;]*)"];
-    const { key, assignment, value } = CensoringProvider.buildCensorKeyRegex(keys, languageId, ...additionalValues);
-
-    return new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
-  }
-
   public static buildCensorKeyRegex(
     keys: string[],
-    languageId: string = "default",
+    assignment: string,
     ...additionalValueExpressions: string[]
   ): RegexKeyValueParts {
-    const assignment = CensoringProvider.assignmentRegex[languageId] || CensoringProvider.assignmentRegex["default"];
     const escapedKeys = keys.map((key) => key.replace(/(?<!\\)\.\*/g, "[^\\s=]*"));
     const escapedValues = [
       ...['"', "'", "`"].map(CensoringProvider.buildQuotedValueExpression),
@@ -139,6 +84,17 @@ export default class CensoringProvider {
 
   public get disposed() {
     return this._disposed;
+  }
+
+  public getCensorRegex(keys: string[], languageId?: string): RegExp {
+    const { config } = this.configurationProvider;
+    const isCodeLanguage = languageId && config.codeLanguages.indexOf(languageId) > -1;
+    const assignmentRegex = config.assignmentRegex[languageId ?? 'default'] || config.assignmentRegex.default;
+    const additionalValues = isCodeLanguage ? []: ["([^\\s\\v\\r\\n,;]*)"];
+
+    const { key, assignment, value } = CensoringProvider.buildCensorKeyRegex(keys, assignmentRegex, ...additionalValues);
+
+    return new RegExp(`(['"]?${key}['"]?${assignment})${value}(?:[\\s\\r\\n,;]|$)`, "gi");
   }
 
   public addVisibleRange(range: Range): void {
@@ -316,7 +272,7 @@ export default class CensoringProvider {
 
     const documentOffset = offset ? this.document.offsetAt(offset) : 0;
     const ranges: Range[] = [];
-    const regex = CensoringProvider.getCensorRegex(keys, languageId);
+    const regex = this.getCensorRegex(keys, languageId);
 
     let currentMatch = regex.exec(text);
     while (currentMatch !== null) {
