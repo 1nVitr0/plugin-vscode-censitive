@@ -42,6 +42,8 @@ Two code actions "Copy to Clipboard" and "Show Censored Text" are provided for c
 This extension has the following settings:
 
 * `censtitive.enable`: enable/disable this extension
+* `censitive.codeLanguages`: List of code languages that conform to standard code syntax (e.g. `c`, `cpp`, `javascript`, `python`)
+* `censitive.assignmentRegex`: Regex used to detect assignments, usually begin and end with `[\\t ]` to capture surrounding spaces
 * `censtitive.mergeGlobalCensoring`: merge configuration in your home directory with the workspace settings
 * `censitive.useFastModeMinLines`: above this line threshold the document is censored twice: once for the visible range and once for the entire document. This speeds up censoring marginally, but can still be slow
 * `censtitive.censor`: Visual settings used for censoring
