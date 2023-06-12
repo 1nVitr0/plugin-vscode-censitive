@@ -66,10 +66,8 @@ export const defaults: Configuration = {
     "vue-html",
   ],
   assignmentRegex: {
-    default: "[\\t ]*[:=]+[\\t ]*",
+    default: "[\\t ]*[:=][=>]?[\\t ]*",
     yaml: "[\\t ]*:[\\t ]*(?!>|\\|)",
-    php: "[\\t ]*[:=]>?[\\t ]*",
-    ruby: "[\\t ]*[:=]+>?[\\t ]*",
   },
   censoring: {
     color: "theme.editorInfo.background",

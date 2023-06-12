@@ -83,10 +83,8 @@
         },
         "censitive.assignmentRegex": {
           "default": {
-            "default": "[\\t ]*[:=]+[\\t ]*",
-            "yaml": "[\\t ]*:[\\t ]*(?!>|\\|)",
-            "php": "[\\t ]*[:=]>?[\\t ]*",
-            "ruby": "[\\t ]*[:=]+>?[\\t ]*"
+            "default": "[\\t ]*[:=][=>]?[\\t ]*",
+            "yaml": "[\\t ]*:[\\t ]*(?!>|\\|)"
           },
           "description": "Regex used to detect assignments",
           "type": "object",
