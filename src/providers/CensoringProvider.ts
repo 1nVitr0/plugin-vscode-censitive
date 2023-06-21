@@ -309,7 +309,7 @@ export default class CensoringProvider {
     let multiline = CensoringProvider.multilineValues[languageId];
     const regexParts = CensoringProvider.buildCensorKeyRegex(keys, languageId);
 
-    if (fencePatterns) {
+    if (fencePatterns.length > 0) {
       const regexpStart = new RegExp(fencePatterns.map((f) => `(${f.start})`).join("|"));
       const regexpEnd = new RegExp(fencePatterns.map((f) => `(${f.end})`).join("|"));
 
