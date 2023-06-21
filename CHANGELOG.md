@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.3.0...v1.3.1) (2023-06-21)
+
+
+### Bug Fixes
+
+* prevent censoring every line ([f64e022](https://github.com/1nVitr0/plugin-vscode-censitive/commit/f64e0229404af47d86b4a19e58b63652862eae9c))
+
 # [1.3.0](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.2.7...v1.3.0) (2023-06-12)
 
 
