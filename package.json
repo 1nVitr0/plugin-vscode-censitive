@@ -116,46 +116,10 @@
           "type": "boolean"
         },
         "censitive.defaultCensoring": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "match": {
-                "type": "string",
-                "description": "glob pattern to match files",
-                "default": "**/{env,env.*}"
-              },
-              "censor": {
-                "type": "array",
-                "items": {
-                  "oneOf": [
-                    {
-                      "type": "string",
-                      "default": ".*password"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "start": {
-                          "type": "string",
-                          "description": "start of the sensitive content",
-                          "default": "---BEGIN SECRET KEY---"
-                        },
-                        "end": {
-                          "type": "string",
-                          "description": "end of the sensitive content",
-                          "default": "---END SECRET KEY---"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
           "default": [
             {
-              "match": "**/{env,.env,env.*.env.*}",
+              "match": "**/{env,.env,env.*,.env.*}",
+              "exclude": "**/{env.example,.env.example}",
               "censor": [
                 ".*password",
                 ".*token",
@@ -171,7 +135,59 @@
                 }
               ]
             }
-          ]
+          ],
+          "description": "Default censoring rules for all files",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "match": {
+                "default": "**/{env,env.*}",
+                "description": "glob pattern to match files",
+                "type": "string",
+                "minLength": 1
+              },
+              "exclude": {
+                "description": "glob pattern to exclude files",
+                "type": "string",
+                "minLength": 1
+              },
+              "censor": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "oneOf": [
+                    {
+                      "default": ".*password",
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "start": {
+                          "default": "---BEGIN SECRET KEY---",
+                          "description": "start of the sensitive content",
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "end": {
+                          "default": "---END SECRET KEY---",
+                          "description": "end of the sensitive content",
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "match",
+              "censor"
+            ]
+          }
         },
         "censitive.censoring": {
           "type": "object",

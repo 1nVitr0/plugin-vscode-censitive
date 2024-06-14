@@ -49,6 +49,7 @@ This extension has the following settings:
 * `censtitive.censor`: Visual settings used for censoring
 * `censtitive.showTimeoutSeconds`: Controls the time the password is shown after clicking on 'Show Censored Text'
 * `censitive.defaultCensoring`: Default censoring config, if no `.censitive` file is present in the workspace or the user's home directory
+* `censitive.mergeDefaultCensoring`: merge default configuration with all .censitive configurations
 
 The values being censored can be controlled using a `.censitive` file in the workspace root.
 The keys are matched case insensitive. Its basic format is:
@@ -56,12 +57,13 @@ The keys are matched case insensitive. Its basic format is:
 ```censitive
 # Comment
 <globPattern>:[keyRegex]
+<globPattern>!<excludePatterns>:[keyRegex]
 
 # Alternatively, for fenced censoring
-<globPattern>:[beginRegex]:[endRegex]
+<globPattern>!<excludePatterns>:[beginRegex]:[endRegex]
 
 # Or, for more complex censoring
-<globPattern>:[beginRegex],[keyRegex]:[endRegex]
+<globPattern>!<excludePatterns>:[beginRegex],[keyRegex]:[endRegex]
 ```
 
 The glob pattern is always taken relative to the active workspace(s).
@@ -70,6 +72,10 @@ If there is no active workspace, all patterns are automatically prepended with `
 Multiple key regular expressions can be provided, by separating them with a comma `,`.
 When providing fenced censoring, the amount of comma-separated end expressions must match the amount of start expressions.
 Additional start expressions will be used as keys, additional end expressions will be ignored.
+
+Exclude patterns can be added after the `<globPattern>`, separated by a `!`.
+They behave the same way as the `<globPattern>` and can be used to exclude specific files from censoring.
+They only correspond to the preceding glob pattern and do not exclude files from other `.censitive` lines.
 
 For example:
 
@@ -82,6 +88,9 @@ For example:
 
 # Hide Certificates and keys
 *.{pem,crt,key}:BEGIN CERTIFICATE,BEGIN (RSA )?PRIVATE KEY:END CERTIFICATE,END (RSA )?PRIVATE KEY
+
+# Hide passwords in env files, but not in the env.example file
+env*!env.example:.*password
 ```
 
 To completely hide the content of specific files, the shorthand `*` can be used as the key:

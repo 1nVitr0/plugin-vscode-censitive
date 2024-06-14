@@ -15,10 +15,13 @@ import {
 } from "vscode";
 import { CensorOptions } from "../decorations/CensorBar";
 
-export interface DefaultCensoringConfig {
-  match: string;
-  censor: (string | { start: string; end: string })[];
-}
+export type DefaultCensoringConfig =
+  | {
+      match: string;
+      exclude?: string;
+      censor: (string | { start: string; end: string })[];
+    }
+  | { exclude: string };
 
 export interface Configuration {
   censoring: CensorOptions;
@@ -37,11 +40,23 @@ export interface FencingPattern {
   end: string;
 }
 
-export interface CensoringKeys {
+export type CensoringKeysBase = {
   keys: string[];
   fencingPatterns?: FencingPattern[];
+  selector: DocumentSelector | null;
+  exclude?: DocumentSelector;
+};
+
+export interface CensoringKeysWithSelector extends CensoringKeysBase {
   selector: DocumentSelector;
 }
+
+export interface CensoringKeysIgnore extends CensoringKeysBase {
+  selector: null;
+  exclude: DocumentSelector;
+}
+
+export type CensoringKeys = CensoringKeysWithSelector | CensoringKeysIgnore;
 
 export const defaults: Configuration = {
   enable: true,
@@ -90,7 +105,8 @@ export const defaults: Configuration = {
   },
   defaultCensoring: [
     {
-      match: "**/{env,.env,env.*.env.*}",
+      match: "**/{env,.env,env.*,.env.*}",
+      exclude: "**/{env.example,.env.example}",
       censor: [".*password", ".*token", ".*secret.*"],
     },
     {
@@ -102,6 +118,14 @@ export const defaults: Configuration = {
 
 function isWorkspaceFolder(folder: WorkspaceFolder | Uri): folder is WorkspaceFolder {
   return (folder as WorkspaceFolder).uri !== undefined;
+}
+
+function isCensoringKeyWithSelector(key: CensoringKeys): key is CensoringKeysWithSelector {
+  return key.selector !== null;
+}
+
+function isCensoringKeyIgnore(key: CensoringKeys): key is CensoringKeysIgnore {
+  return key.selector === null;
 }
 
 export default class ConfigurationProvider {
@@ -128,11 +152,16 @@ export default class ConfigurationProvider {
     ConfigurationProvider._config = workspace.getConfiguration("censitive");
     ConfigurationProvider.censorKeys[ConfigurationProvider._defaultWorkspaceName] = (
       ((ConfigurationProvider._config as unknown) || defaults) as Configuration
-    ).defaultCensoring?.map(({ match, censor }) => ({
-      selector: { pattern: match },
-      keys: censor.filter<string>((key) => typeof key === "string"),
-      fencingPatterns: censor.filter<FencingPattern>((key) => typeof key !== "string"),
-    }));
+    ).defaultCensoring?.map(({ exclude, ...options }) => {
+      return "match" in options
+        ? {
+            selector: { pattern: options.match },
+            exclude: exclude && { pattern: exclude },
+            keys: options.censor.filter((key): key is string => typeof key === "string"),
+            fencingPatterns: options.censor.filter((key): key is FencingPattern => typeof key !== "string"),
+          }
+        : { selector: null, exclude: { pattern: exclude! }, keys: [] };
+    });
   }
 
   public static async updateCensoringKeys(workspace: WorkspaceFolder | Uri, configFile?: Uri | null) {
@@ -148,10 +177,26 @@ export default class ConfigurationProvider {
         .split(/\r?\n/g)
         .filter((line) => line.trim() && !line.startsWith("#") && !line.startsWith("//"))
         .map((line) => {
-          const [pattern, keyList, fenceList] = line.split(/(?<!\\):/);
-          const keys = keyList.split(/,\s*/g);
+          const [patternRaw, keyList = "", fenceList] = line.split(/(?<!\\):/);
+          const [pattern, excludePattern] = patternRaw.replace(/\\:/g, ":").split(/(?<!\\)!/);
+
+          const selector = pattern
+            ? isWorkspaceFolder(workspace)
+              ? { pattern: new RelativePattern(workspace, pattern.replace(/\\!/g, "!")) }
+              : pattern.replace(/\\!/g, "!")
+            : null;
+          const exclude =
+            excludePattern &&
+            (isWorkspaceFolder(workspace)
+              ? { pattern: new RelativePattern(workspace, excludePattern.replace(/\\!/g, "!")) }
+              : excludePattern.replace(/\\!/g, "!"));
+          const keys = keyList
+            .replace(/\\:/g, ":")
+            .split(/,\s*/g)
+            .filter((key) => !!key);
           const fencingPatterns = fenceList
             ? fenceList
+                .replace(/\\:/g, ":")
                 .split(/,\s*/g)
                 .map((fence) => ({
                   start: keys.shift() || "",
@@ -159,10 +204,7 @@ export default class ConfigurationProvider {
                 }))
                 .filter(({ start }) => !!start)
             : undefined;
-          const selector = isWorkspaceFolder(workspace)
-            ? { pattern: new RelativePattern(workspace, pattern) }
-            : pattern;
-          return { selector, keys, fencingPatterns };
+          return { selector, exclude, keys, fencingPatterns };
         }));
     } catch (e) {
       window.showErrorMessage("Failed to load censitive config (see console for more info)");
@@ -231,6 +273,7 @@ export default class ConfigurationProvider {
   public static isCensoringKeyEqual(a: CensoringKeys, b: CensoringKeys) {
     return (
       a.selector === b.selector &&
+      a.exclude === b.exclude &&
       a.keys.every((key) => b.keys.includes(key)) &&
       b.keys.every((key) => a.keys.includes(key))
     );
@@ -238,15 +281,24 @@ export default class ConfigurationProvider {
 
   public isDocumentInCensorConfig(document: TextDocument): boolean {
     const folder = workspace.getWorkspaceFolder(document.uri);
-    const censorKeys = this.getCensoringKeysForFolder(folder);
+    const allCensorKeys = this.getCensoringKeysForFolder(folder);
+    const censorKeys = allCensorKeys.filter<CensoringKeysWithSelector>(isCensoringKeyWithSelector);
+    const ignoreKeys = allCensorKeys.filter<CensoringKeysIgnore>(isCensoringKeyIgnore);
 
     if (censorKeys.length === 0) {
       return false;
     }
 
     const { match } = languages;
-    for (const { selector } of censorKeys) {
-      if (match(selector, document) > 0) {
+
+    if (ignoreKeys.some(({ exclude = "" }) => match(exclude, document) > 0)) {
+      return false;
+    }
+
+    for (const { selector, exclude } of censorKeys) {
+      if (exclude && match(exclude, document) > 0) {
+        continue;
+      } else if (match(selector, document) > 0) {
         return true;
       }
     }
@@ -263,7 +315,7 @@ export default class ConfigurationProvider {
     }
 
     return censorKeys.reduce<(string | FencingPattern)[]>((acc, { selector, keys, fencingPatterns = [] }) => {
-      return languages.match(selector, document) > 0 ? [...acc, ...keys, ...fencingPatterns] : acc;
+      return selector && languages.match(selector, document) > 0 ? [...acc, ...keys, ...fencingPatterns] : acc;
     }, []);
   }
 
@@ -282,18 +334,11 @@ export default class ConfigurationProvider {
     );
 
     return censorKeys.map((censorKey) => {
-      const { keys, selector } = censorKey;
-      if (typeof selector === "string") {
-        const dirGlob = selector.startsWith("**") || selector.startsWith("./**") ? "" : "**/";
-        return {
-          keys,
-          selector: {
-            pattern: folder ? new RelativePattern(folder, selector) : `${dirGlob}${selector}`,
-          },
-        };
-      }
+      let { selector, exclude } = censorKey;
+      selector = selector && this.extendGlobSelector(selector, folder);
+      exclude = exclude && this.extendGlobSelector(exclude, folder);
 
-      return censorKey;
+      return { ...censorKey, selector, exclude } as CensoringKeys;
     });
   }
 
@@ -308,5 +353,14 @@ export default class ConfigurationProvider {
     }
 
     return censorKeys;
+  }
+
+  private extendGlobSelector(selector: DocumentSelector, folder?: WorkspaceFolder) {
+    if (typeof selector === "string") {
+      const dirGlob = selector.startsWith("**") || selector.startsWith("./**") ? "" : "**/";
+      return folder ? new RelativePattern(folder, selector) : `${dirGlob}${selector}`;
+    } else {
+      return selector;
+    }
   }
 }
