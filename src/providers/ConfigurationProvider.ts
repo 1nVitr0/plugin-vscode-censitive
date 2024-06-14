@@ -15,6 +15,11 @@ import {
 } from "vscode";
 import { CensorOptions } from "../decorations/CensorBar";
 
+export interface DefaultCensoringConfig {
+  match: string;
+  censor: (string | { start: string; end: string })[];
+}
+
 export interface Configuration {
   censoring: CensorOptions;
   showTimeoutSeconds: number;
@@ -23,6 +28,8 @@ export interface Configuration {
   mergeGlobalCensoring: boolean;
   codeLanguages: string[];
   assignmentRegex: Record<string, string> & { default: string };
+  defaultCensoring: DefaultCensoringConfig[];
+  mergeDefaultCensoring?: boolean;
 }
 
 export interface FencingPattern {
@@ -81,6 +88,16 @@ export const defaults: Configuration = {
     border: "2px solid grey",
     grow: true,
   },
+  defaultCensoring: [
+    {
+      match: "**/{env,.env,env.*.env.*}",
+      censor: [".*password", ".*token", ".*secret.*"],
+    },
+    {
+      match: "**/id_{rsa,dsa,ecdsa,eddsa,dss,sha2}",
+      censor: [{ start: "-----BEGIN.*PRIVATE KEY-----", end: "-----END.*PRIVATE KEY-----" }],
+    },
+  ],
 };
 
 function isWorkspaceFolder(folder: WorkspaceFolder | Uri): folder is WorkspaceFolder {
@@ -91,6 +108,7 @@ export default class ConfigurationProvider {
   public static censorKeys: { [workspace: string]: CensoringKeys[] } = {};
   private static _config: WorkspaceConfiguration;
   private static _globalWorkspaceName = "global";
+  private static _defaultWorkspaceName = "default";
   private static _userHome = env.appRoot;
 
   public static async init() {
@@ -108,6 +126,13 @@ export default class ConfigurationProvider {
 
   public static async updateConfig() {
     ConfigurationProvider._config = workspace.getConfiguration("censitive");
+    ConfigurationProvider.censorKeys[ConfigurationProvider._defaultWorkspaceName] = (
+      ((ConfigurationProvider._config as unknown) || defaults) as Configuration
+    ).defaultCensoring?.map(({ match, censor }) => ({
+      selector: { pattern: match },
+      keys: censor.filter<string>((key) => typeof key === "string"),
+      fencingPatterns: censor.filter<FencingPattern>((key) => typeof key !== "string"),
+    }));
   }
 
   public static async updateCensoringKeys(workspace: WorkspaceFolder | Uri, configFile?: Uri | null) {
@@ -156,7 +181,7 @@ export default class ConfigurationProvider {
     if (ConfigurationProvider._userHome) {
       const globalConfigFile = Uri.joinPath(Uri.file(ConfigurationProvider._userHome), ".censitive");
       const { size } = await new Promise<FileStat>((resolve, reject) =>
-        workspace.fs.stat(globalConfigFile).then(resolve, reject)
+        stat(globalConfigFile).then(resolve, reject)
       ).catch(() => ({ size: 0 }));
       if (size > 0) {
         await ConfigurationProvider.updateCensoringKeys(globalConfigFile, globalConfigFile);
@@ -170,6 +195,18 @@ export default class ConfigurationProvider {
 
   public get globalCensorKeys(): CensoringKeys[] {
     return ConfigurationProvider.censorKeys[ConfigurationProvider._globalWorkspaceName] ?? [];
+  }
+
+  public get defaultCensorKeys(): CensoringKeys[] {
+    return ConfigurationProvider.censorKeys[ConfigurationProvider._defaultWorkspaceName] ?? [];
+  }
+
+  public get hasGlobalCensorKeys(): boolean {
+    return !!this.globalCensorKeys;
+  }
+
+  public get hasDefaultCensorKeys(): boolean {
+    return !!this.defaultCensorKeys;
   }
 
   public get censorOptions(): CensorOptions {
@@ -199,12 +236,9 @@ export default class ConfigurationProvider {
     );
   }
 
-  public isDocumentInCensorConfig(document: TextDocument, mergeGlobal?: boolean): boolean {
-    if (mergeGlobal === undefined) {
-      mergeGlobal = this.config.mergeGlobalCensoring;
-    }
+  public isDocumentInCensorConfig(document: TextDocument): boolean {
     const folder = workspace.getWorkspaceFolder(document.uri);
-    const censorKeys = this.getCensoringKeysForFolder(folder, mergeGlobal);
+    const censorKeys = this.getCensoringKeysForFolder(folder);
 
     if (censorKeys.length === 0) {
       return false;
@@ -220,12 +254,9 @@ export default class ConfigurationProvider {
     return false;
   }
 
-  public getCensoredKeys(document: TextDocument, mergeGlobal?: boolean): (string | FencingPattern)[] {
-    if (mergeGlobal === undefined) {
-      mergeGlobal = this.config.mergeGlobalCensoring;
-    }
+  public getCensoredKeys(document: TextDocument): (string | FencingPattern)[] {
     const folder = workspace.getWorkspaceFolder(document.uri);
-    const censorKeys = this.getCensoringKeysForFolder(folder, mergeGlobal);
+    const censorKeys = this.getCensoringKeysForFolder(folder);
 
     if (censorKeys.length === 0) {
       return [];
@@ -236,15 +267,19 @@ export default class ConfigurationProvider {
     }, []);
   }
 
-  private getCensoringKeysForFolder(folder?: WorkspaceFolder, mergeGlobal = true): CensoringKeys[] {
-    const censorKeys = [...((folder && ConfigurationProvider.censorKeys[folder.name]) ?? [])];
-    if (mergeGlobal || !folder || !ConfigurationProvider.censorKeys[folder.name]) {
-      censorKeys.push(
-        ...this.globalCensorKeys.filter((censorKey) =>
-          censorKeys.every((key) => !ConfigurationProvider.isCensoringKeyEqual(key, censorKey))
-        )
-      );
-    }
+  private getCensoringKeysForFolder(folder?: WorkspaceFolder): CensoringKeys[] {
+    const { mergeGlobalCensoring, mergeDefaultCensoring } = this.config;
+    const hasGlobalCensoring = this.hasGlobalCensorKeys;
+    const hasLocalCensoring = folder && ConfigurationProvider.censorKeys[folder.name];
+
+    const censorKeyGroups = [
+      mergeGlobalCensoring || !hasLocalCensoring ? this.globalCensorKeys : [],
+      mergeDefaultCensoring || (!hasLocalCensoring && !hasGlobalCensoring) ? this.defaultCensorKeys : [],
+    ];
+    const censorKeys = this.mergeCensoringKeys(
+      (folder && ConfigurationProvider.censorKeys[folder.name]) ?? [],
+      ...censorKeyGroups
+    );
 
     return censorKeys.map((censorKey) => {
       const { keys, selector } = censorKey;
@@ -260,5 +295,18 @@ export default class ConfigurationProvider {
 
       return censorKey;
     });
+  }
+
+  private mergeCensoringKeys(base: CensoringKeys[], ...merge: CensoringKeys[][]) {
+    const censorKeys = [...base];
+    for (const keys of merge) {
+      censorKeys.push(
+        ...keys.filter((censorKey) =>
+          censorKeys.every((key) => !ConfigurationProvider.isCensoringKeyEqual(key, censorKey))
+        )
+      );
+    }
+
+    return censorKeys;
   }
 }

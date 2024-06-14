@@ -48,6 +48,7 @@ This extension has the following settings:
 * `censitive.useFastModeMinLines`: above this line threshold the document is censored twice: once for the visible range and once for the entire document. This speeds up censoring marginally, but can still be slow
 * `censtitive.censor`: Visual settings used for censoring
 * `censtitive.showTimeoutSeconds`: Controls the time the password is shown after clicking on 'Show Censored Text'
+* `censitive.defaultCensoring`: Default censoring config, if no `.censitive` file is present in the workspace or the user's home directory
 
 The values being censored can be controlled using a `.censitive` file in the workspace root.
 The keys are matched case insensitive. Its basic format is:
