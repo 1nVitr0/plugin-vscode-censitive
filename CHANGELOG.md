@@ -1,3 +1,11 @@
+# [1.4.0](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.3.1...v1.4.0) (2024-06-14)
+
+
+### Features
+
+* add config for default censoring ([1e0b650](https://github.com/1nVitr0/plugin-vscode-censitive/commit/1e0b650bdbfadeeebf8f2470880694ea92a59666))
+* add option to exclude globs from censoring ([c58c189](https://github.com/1nVitr0/plugin-vscode-censitive/commit/c58c189f8025b37f6777c406c23d3770432ccf93))
+
 ## [1.3.1](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.3.0...v1.3.1) (2023-06-21)
 
 
