@@ -17,8 +17,23 @@
       }
     },
     {
+      "comment": "Glob Exclude Pattern",
+      "match": "^!([^:]+)$",
+      "name": "meta.block.censitive meta.entry.censitive",
+      "captures": {
+        "1": {
+          "name": "support.type.file-selector.censitive string.glob.censitive",
+          "patterns": [
+            {
+              "include": "#glob"
+            }
+          ]
+        }
+      }
+    },
+    {
       "comment": "Glob Pattern",
-      "match": "^(.+?)((?<!\\\\):)(.*?)(((?<!\\\\):)(.*))?$",
+      "match": "^(.+?)((!)(.+?))?((?<!\\\\):)(.*?)(((?<!\\\\):)(.*))?$",
       "name": "meta.block.censitive meta.entry.censitive",
       "captures": {
         "1": {
@@ -29,14 +44,14 @@
             }
           ]
         },
-        "2": {
-          "name": "keyword.operator.assignment.censitive"
-        },
         "3": {
-          "name": "meta.block.censitive meta.keylist.censitive",
+          "name": "keyword.operator.negation.censitive"
+        },
+        "4": {
+          "name": "support.type.file-selector.censitive string.glob.censitive",
           "patterns": [
             {
-              "include": "#key"
+              "include": "#glob"
             }
           ]
         },
@@ -44,6 +59,17 @@
           "name": "keyword.operator.assignment.censitive"
         },
         "6": {
+          "name": "meta.block.censitive meta.keylist.censitive",
+          "patterns": [
+            {
+              "include": "#key"
+            }
+          ]
+        },
+        "8": {
+          "name": "keyword.operator.assignment.censitive"
+        },
+        "9": {
           "name": "meta.block.censitive meta.fence.censitive",
           "patterns": [
             {
