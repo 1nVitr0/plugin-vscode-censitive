@@ -128,7 +128,7 @@ export default class CensoringProvider {
 
     // We need to reapply the decorations when the visibility changes
     if (this.document.version === this.documentVersion && !configChanged) {
-      this.applyCensoredRanges();
+      return this.applyCensoredRanges();
     }
 
     const keys = this.configurationProvider.getCensoredKeys(this.document);
