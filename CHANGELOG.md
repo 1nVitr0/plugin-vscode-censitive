@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.4.0...v1.4.1) (2024-09-09)
+
+
+### Bug Fixes
+
+* skip recalculating ranges when document is unchanged ([2707bc1](https://github.com/1nVitr0/plugin-vscode-censitive/commit/2707bc12c6b68dbac6c5afbe9ac80747b18febc6))
+
 # [1.4.0](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.3.1...v1.4.0) (2024-06-14)
 
 
