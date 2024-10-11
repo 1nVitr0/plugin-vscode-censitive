@@ -13,6 +13,7 @@ import {
   Range,
   env,
   languages,
+  Disposable,
 } from "vscode";
 import CensoringCodeLensProvider from "./providers/CensoringCodeLensProvider";
 import CensoringProvider from "./providers/CensoringProvider";
@@ -20,8 +21,8 @@ import ConfigurationProvider, { Configuration } from "./providers/ConfigurationP
 
 let configurationProvider = new ConfigurationProvider();
 let censoringCodeLensProvider: CensoringCodeLensProvider;
-let instanceMap: CensoringProvider[] = [];
-let watchers: FileSystemWatcher[] = [];
+let instanceMap = new Map<TextDocument, CensoringProvider>();
+let watchers = new Map<string, FileSystemWatcher>();
 
 export async function activate(context: ExtensionContext) {
   await ConfigurationProvider.init();
@@ -67,28 +68,17 @@ export async function activate(context: ExtensionContext) {
   workspace.onDidCloseTextDocument(onCloseDocument, null, context.subscriptions);
   workspace.onDidChangeConfiguration(onConfigurationChange, null, context.subscriptions);
   extensions.onDidChange(onConfigurationChange, null, context.subscriptions);
+  workspace.onDidChangeWorkspaceFolders(({ added, removed }) => {
+    added.forEach(({ name, uri }) => watchWorkspace(name, uri));
+    removed.forEach(({ name }) => {
+      watchers.get(name)?.dispose();
+      watchers.delete(name);
+    });
+  });
 
-  watchers.push(
-    ...(workspace.workspaceFolders?.map((folder) => {
-      const configWatcher = workspace.createFileSystemWatcher(new RelativePattern(folder, ".censitive"));
-      context.subscriptions.push(
-        configWatcher.onDidCreate(onCensorConfigChanged.bind(null, folder)),
-        configWatcher.onDidChange(onCensorConfigChanged.bind(null, folder)),
-        configWatcher.onDidDelete(() => onCensorConfigChanged(folder, null))
-      );
-
-      return configWatcher;
-    }) || [])
-  );
+  workspace.workspaceFolders?.forEach(({ name, uri }) => watchWorkspace(name, uri));
   if (userHome) {
-    const userHomeUri = Uri.file(userHome);
-    const globalConfigWatcher = workspace.createFileSystemWatcher(new RelativePattern(userHomeUri, ".censitive"));
-    watchers.push(globalConfigWatcher);
-    context.subscriptions.push(
-      globalConfigWatcher.onDidCreate(onCensorConfigChanged.bind(null, userHomeUri)),
-      globalConfigWatcher.onDidChange(onCensorConfigChanged.bind(null, userHomeUri)),
-      globalConfigWatcher.onDidDelete(() => onCensorConfigChanged(userHomeUri, null))
-    );
+    watchWorkspace(ConfigurationProvider.globalWorkspaceName, Uri.file(userHome));
   }
 }
 
@@ -96,30 +86,32 @@ export function deactivate() {
   instanceMap.forEach((instance) => instance.dispose());
   watchers.forEach((watcher) => watcher.dispose());
 
-  instanceMap = [];
-  watchers = [];
+  instanceMap.clear();
+  watchers.clear();
 }
 
-function reactivate() {
-  deactivate();
+function watchWorkspace(name: string, folder: Uri) {
+  const configWatcher = workspace.createFileSystemWatcher(new RelativePattern(folder, "**/.censitive"));
+  configWatcher.onDidCreate(onCensorConfigChanged.bind(null, folder));
+  configWatcher.onDidChange(onCensorConfigChanged.bind(null, folder));
+  configWatcher.onDidDelete(() => onCensorConfigChanged(folder, null));
 
-  instanceMap = [];
-  onVisibleEditorsChanged(window.visibleTextEditors);
+  watchers.set(name, configWatcher);
 }
 
-function isValidDocument(config: Configuration, document: TextDocument): boolean {
-  return config.enable && configurationProvider.isDocumentInCensorConfig(document);
+async function isValidDocument(config: Configuration, document: TextDocument): Promise<boolean> {
+  return config.enable && (await configurationProvider.isDocumentInCensorConfig(document));
 }
 
 async function findOrCreateInstance(document: TextDocument) {
-  const found = instanceMap.find(({ document: refDoc }) => refDoc === document);
+  const found = instanceMap.get(document);
 
   if (!found) {
     const instance = new CensoringProvider(document, configurationProvider.censorOptions, censoringCodeLensProvider);
-    instanceMap.push(instance);
+    instanceMap.set(document, instance);
   }
 
-  return found || instanceMap[instanceMap.length - 1];
+  return found || instanceMap.get(document)!;
 }
 
 async function doCensoring(documents: TextDocument[] = [], configChanged = false) {
@@ -132,24 +124,19 @@ async function doCensoring(documents: TextDocument[] = [], configChanged = false
   }
 }
 
-function onConfigurationChange() {
-  ConfigurationProvider.updateConfig().then(reactivate);
+async function onConfigurationChange() {
+  await ConfigurationProvider.updateConfig();
+  onVisibleEditorsChanged(window.visibleTextEditors);
 }
 
-function onCensorConfigChanged(folder: WorkspaceFolder | Uri, uri: Uri | null) {
-  ConfigurationProvider.updateCensoringKeys(folder, uri);
+async function onCensorConfigChanged(folder: WorkspaceFolder | Uri, uri: Uri | null) {
+  await ConfigurationProvider.updateCensoringKeys(folder, uri);
   onVisibleEditorsChanged(window.visibleTextEditors, true);
 }
 
 function onCloseDocument(document: TextDocument) {
   // Dispose instance if document is closed
-  for (let i = 0; i < instanceMap.length; i++) {
-    if (instanceMap[i].document === document) {
-      instanceMap[i].dispose();
-      instanceMap.splice(i, 1);
-      break;
-    }
-  }
+  instanceMap.delete(document);
 }
 
 async function onVisibleEditorsChanged(visibleEditors: readonly TextEditor[], configChanged = false) {
@@ -157,15 +144,17 @@ async function onVisibleEditorsChanged(visibleEditors: readonly TextEditor[], co
   const visibleDocuments = visibleEditors.map(({ document }) => document);
 
   // Only update visible TextEditors with valid configuration
-  const validDocuments = visibleDocuments.filter((doc) => isValidDocument(config, doc));
+  const validDocuments = (
+    await Promise.all(visibleDocuments.map(async (doc) => ((await isValidDocument(config, doc)) ? doc : null)))
+  ).filter(Boolean) as TextDocument[];
   await doCensoring(validDocuments, configChanged);
 
   if (configChanged) {
-    const invalidated = configChanged ? instanceMap.filter(({ document }) => !isValidDocument(config, document)) : [];
-    for (const instance of invalidated) {
-      const index = instanceMap.findIndex((i) => i === instance);
-      instanceMap.splice(index, 1);
-      instance.dispose();
+    for (const [document, instance] of instanceMap) {
+      if (!(await isValidDocument(config, document))) {
+        instance.dispose();
+        instanceMap.delete(document);
+      }
     }
   }
 }
