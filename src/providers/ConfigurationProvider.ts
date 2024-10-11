@@ -129,9 +129,9 @@ function isCensoringKeyIgnore(key: CensoringKeys): key is CensoringKeysIgnore {
 
 export default class ConfigurationProvider {
   public static censorKeys: { [workspace: string]: CensoringKeys[] } = {};
-  public static globalWorkspaceName = "global";
-  public static defaultWorkspaceName = "default";
   private static _config: WorkspaceConfiguration;
+  private static _globalWorkspaceName = "global";
+  private static _defaultWorkspaceName = "default";
   private static _userHome = env.appRoot;
 
   public static async init() {
@@ -149,7 +149,7 @@ export default class ConfigurationProvider {
 
   public static async updateConfig() {
     ConfigurationProvider._config = workspace.getConfiguration("censitive");
-    ConfigurationProvider.censorKeys[ConfigurationProvider.defaultWorkspaceName] = (
+    ConfigurationProvider.censorKeys[ConfigurationProvider._defaultWorkspaceName] = (
       ((ConfigurationProvider._config as unknown) || defaults) as Configuration
     ).defaultCensoring?.map(({ exclude, ...options }) => {
       return "match" in options
@@ -168,7 +168,7 @@ export default class ConfigurationProvider {
     configFile: Uri | null,
     base: Uri | WorkspaceFolder | null = workspaceFolder
   ) {
-    const name = base ? (isWorkspaceFolder(base) ? base.name : base.path) : ConfigurationProvider.globalWorkspaceName;
+    const name = base ? (isWorkspaceFolder(base) ? base.name : base.path) : ConfigurationProvider._globalWorkspaceName;
     if (!configFile) {
       return (ConfigurationProvider.censorKeys[name] = []);
     }
@@ -253,8 +253,12 @@ export default class ConfigurationProvider {
       const configFiles = await workspace.findFiles(new RelativePattern(folder, "**/.censitive"));
       await Promise.all(
         configFiles.map((censitiveUri) => {
-          const base = censitiveUri.with({ path: censitiveUri.path.replace(/\/\.censitive$/, "") });
-          return ConfigurationProvider.updateCensoringKeys(folder, censitiveUri, base);
+          const base = Uri.file(dirname(censitiveUri.fsPath));
+          return ConfigurationProvider.updateCensoringKeys(
+            folder,
+            censitiveUri,
+            base.toString() === folder.uri.toString() ? folder : base
+          );
         })
       );
     }
@@ -290,11 +294,11 @@ export default class ConfigurationProvider {
   }
 
   public get globalCensorKeys(): CensoringKeys[] {
-    return ConfigurationProvider.censorKeys[ConfigurationProvider.globalWorkspaceName] ?? [];
+    return ConfigurationProvider.censorKeys[ConfigurationProvider._globalWorkspaceName] ?? [];
   }
 
   public get defaultCensorKeys(): CensoringKeys[] {
-    return ConfigurationProvider.censorKeys[ConfigurationProvider.defaultWorkspaceName] ?? [];
+    return ConfigurationProvider.censorKeys[ConfigurationProvider._defaultWorkspaceName] ?? [];
   }
 
   public get hasGlobalCensorKeys(): boolean {
@@ -386,11 +390,13 @@ export default class ConfigurationProvider {
     const baseCensoringKeys = base ? ConfigurationProvider.censorKeys[base.name] : undefined;
     const censorKeyGroups = [];
 
-    if (subPath && !base) {
-      // Load config for files outside the workspace
-      const parentDirectories = ConfigurationProvider.getParentDirectories(subPath);
-      await ConfigurationProvider.loadCensoringConfigFiles(subPath);
+    if (subPath) {
+      if (!base) {
+        // Load config for files outside the workspace
+        await ConfigurationProvider.loadCensoringConfigFiles(subPath);
+      }
 
+      const parentDirectories = ConfigurationProvider.getParentDirectories(subPath);
       for (const directory of parentDirectories) {
         if (ConfigurationProvider.censorKeys[directory.path]) {
           censorKeyGroups.push(ConfigurationProvider.censorKeys[directory.path]);

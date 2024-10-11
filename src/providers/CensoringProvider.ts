@@ -143,7 +143,9 @@ export default class CensoringProvider {
     }
 
     const { uri, lineCount } = this.document;
-    const visibleEditors = window.visibleTextEditors.filter(({ document }) => document.uri === uri);
+    const visibleEditors = window.visibleTextEditors.filter(
+      ({ document }) => document.uri.toString() === uri.toString()
+    );
     const visibleRanges = visibleEditors.reduce<Range[]>((ranges, editor) => [...ranges, ...editor.visibleRanges], []);
 
     if (fast && lineCount > config.useFastModeMinLines) {
@@ -267,7 +269,7 @@ export default class CensoringProvider {
 
   private applyDecoration(decoration: TextEditorDecorationType, ranges: Range[]) {
     window.visibleTextEditors
-      .filter(({ document }) => document.uri === this.document.uri)
+      .filter(({ document }) => document.uri.toString() === this.document.uri.toString())
       .forEach((editor) => editor.setDecorations(decoration, ranges));
   }
 
