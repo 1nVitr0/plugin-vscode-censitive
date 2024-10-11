@@ -127,11 +127,15 @@ export default class CensoringProvider {
     const { config } = this.configurationProvider;
 
     // We need to reapply the decorations when the visibility changes
-    if (this.document.version === this.documentVersion && !configChanged) {
+    if (
+      this.document.version === this.documentVersion &&
+      this.configurationProvider.isDocumentInWorkspace(this.document) &&
+      !configChanged
+    ) {
       return this.applyCensoredRanges();
     }
 
-    const keys = this.configurationProvider.getCensoredKeys(this.document);
+    const keys = await this.configurationProvider.getCensoredKeys(this.document);
     if (keys.includes("*")) {
       this.censoredRanges = [this.document.validateRange(new Range(0, 0, this.document.lineCount, Infinity))];
       this.documentVersion = this.document.version;
@@ -139,7 +143,9 @@ export default class CensoringProvider {
     }
 
     const { uri, lineCount } = this.document;
-    const visibleEditors = window.visibleTextEditors.filter(({ document }) => document.uri === uri);
+    const visibleEditors = window.visibleTextEditors.filter(
+      ({ document }) => document.uri.toString() === uri.toString()
+    );
     const visibleRanges = visibleEditors.reduce<Range[]>((ranges, editor) => [...ranges, ...editor.visibleRanges], []);
 
     if (fast && lineCount > config.useFastModeMinLines) {
@@ -207,7 +213,7 @@ export default class CensoringProvider {
       return;
     }
 
-    const keys = this.configurationProvider.getCensoredKeys(document);
+    const keys = await this.configurationProvider.getCensoredKeys(document);
     if (keys.includes("*")) {
       this.documentVersion = version;
       return this.censor(false, contentChanges === true);
@@ -263,15 +269,15 @@ export default class CensoringProvider {
 
   private applyDecoration(decoration: TextEditorDecorationType, ranges: Range[]) {
     window.visibleTextEditors
-      .filter(({ document }) => document.uri === this.document.uri)
+      .filter(({ document }) => document.uri.toString() === this.document.uri.toString())
       .forEach((editor) => editor.setDecorations(decoration, ranges));
   }
 
   private async getCensoredRanges(text: string, offset?: Position): Promise<Range[]> {
     const { languageId } = this.document;
-    const keys = this.configurationProvider
-      .getCensoredKeys(this.document)
-      .filter((key) => typeof key === "string") as string[];
+    const keys = (await this.configurationProvider.getCensoredKeys(this.document)).filter(
+      (key) => typeof key === "string"
+    ) as string[];
     if (!keys.length) {
       return [];
     }
@@ -301,7 +307,7 @@ export default class CensoringProvider {
 
   public async getMultilineRanges() {
     const { languageId } = this.document;
-    const censoring = this.configurationProvider.getCensoredKeys(this.document);
+    const censoring = await this.configurationProvider.getCensoredKeys(this.document);
     const keys = censoring.filter((key) => typeof key === "string") as string[];
     const fencePatterns = censoring.filter((key) => typeof key !== "string") as FencingPattern[];
 

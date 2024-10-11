@@ -38,7 +38,7 @@ export default class CensoringCodeLensProvider implements CodeLensProvider {
     const lenses: CodeLens[] = censored.map((range) => {
       const index = (lineIndex[range.start.line] = (lineIndex[range.start.line] || 0) + 1);
       return new CodeLens(range, {
-        title: index > 1 ? `Copy #${index} to Clipboard` : "Copy to Clipboard",
+        title: index > 1 ? `$(copy) Copy #${index} to Clipboard` : "$(copy) Copy to Clipboard",
         command: "censitive.copyCensoredRange",
         arguments: [range],
       });
@@ -49,7 +49,7 @@ export default class CensoringCodeLensProvider implements CodeLensProvider {
       const index = (lineIndex[range.start.line] = (lineIndex[range.start.line] || 0) + 1);
       lenses.push(
         new CodeLens(range, {
-          title: index > 1 ? `Show Censored Text #${index}` : "Show Censored Text",
+          title: index > 1 ? `$(unlock) Show Censored Text #${index}` : "$(unlock) Show Censored Text",
           command: "censitive.displayCensoredRange",
           arguments: [range],
         })

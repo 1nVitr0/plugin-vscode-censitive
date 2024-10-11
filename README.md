@@ -21,15 +21,14 @@ Censitive censors all your sensitive information, such as database logins, token
 > .env:.*_KEY,.*_token,.*_PassWord
 > id_rsa:*
 > ```
-2. Reload the window using `Developer: Reload Window`
 3. Open a file of the type specified in `.censitive` and check the censoring
 
 ## Features
 
-The extension uses decorations to block out sensitive information as set in a `.censitive` file in the workspace or in your home directory.
+The extension uses decorations to block out sensitive information as set in a `.censitive` file in a parent directory or in your home directory.
 If both files are present and `censtitive.mergeGlobalCensoring` is enabled, their censoring will be merged.
 
-When active, the extension will censor all content set in `.censitive` file by using a key-value approach.
+When active, the extension will censor all content set in `.censitive` file(s) by using a key-value approach.
 This means, the `.censitive` file specifies key regexes and the extension automatically finds values assigned to these keys.
 However, because the censoring is based solely on regex, some value formats may not be recognized.
 
@@ -51,7 +50,7 @@ This extension has the following settings:
 * `censitive.defaultCensoring`: Default censoring config, if no `.censitive` file is present in the workspace or the user's home directory
 * `censitive.mergeDefaultCensoring`: merge default configuration with all .censitive configurations
 
-The values being censored can be controlled using a `.censitive` file in the workspace root.
+The values being censored can be controlled using a `.censitive` file in the workspace root, or in any other directory.
 The keys are matched case insensitive. Its basic format is:
 
 ```censitive
@@ -66,7 +65,7 @@ The keys are matched case insensitive. Its basic format is:
 <globPattern>!<excludePatterns>:[beginRegex],[keyRegex]:[endRegex]
 ```
 
-The glob pattern is always taken relative to the active workspace(s).
+The glob pattern is always taken relative to the directory the .censitive file is located in.
 If there is no active workspace, all patterns are automatically prepended with `**/`.
 
 Multiple key regular expressions can be provided, by separating them with a comma `,`.
@@ -103,5 +102,6 @@ To completely hide the content of specific files, the shorthand `*` can be used 
 ## Known Issues
 
 * For large documents, it will take some time for the values to get censored. This is unavoidable due to VS Code processing the document before any extensions.
+* The censoring may flicker when changing between opened files in the editor
 * At the moment, there is no option to add custom regular expressions.
 * `.*` will be automatically transformed to `[^\s]*` to enable multiple censors in a single line. This means: keys with spaces might behave differently than expected.
