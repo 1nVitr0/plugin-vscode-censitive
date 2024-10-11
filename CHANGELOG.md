@@ -1,3 +1,17 @@
+# [1.5.0](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.4.1...v1.5.0) (2024-10-11)
+
+
+### Bug Fixes
+
+* always update censoring config on change across workspaces ([3a3649d](https://github.com/1nVitr0/plugin-vscode-censitive/commit/3a3649dd9b2e26bca15cda7ba31532cd9d526dde))
+* make changing config more efficient ([0060451](https://github.com/1nVitr0/plugin-vscode-censitive/commit/0060451fdac55f46c98ca970958a4a706ebf7368))
+
+
+### Features
+
+* support  subdirectories and .censitive files outside workspace ([2bdbe93](https://github.com/1nVitr0/plugin-vscode-censitive/commit/2bdbe93ef7cb3a1247f13522072264cbfeb591d0))
+* support subdirectories inside workspace ([c32ab0d](https://github.com/1nVitr0/plugin-vscode-censitive/commit/c32ab0d050b9faf81284282214d8f8d9910c592b))
+
 ## [1.4.1](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.4.0...v1.4.1) (2024-09-09)
 
 
