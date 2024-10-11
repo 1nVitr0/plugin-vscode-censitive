@@ -1,5 +1,3 @@
-import { readFile } from "fs";
-import { promisify } from "util";
 import {
   DocumentSelector,
   env,
@@ -14,6 +12,7 @@ import {
   WorkspaceFolder,
 } from "vscode";
 import { CensorOptions } from "../decorations/CensorBar";
+import { dirname, relative, isAbsolute } from "path";
 
 export type DefaultCensoringConfig =
   | {
@@ -130,9 +129,9 @@ function isCensoringKeyIgnore(key: CensoringKeys): key is CensoringKeysIgnore {
 
 export default class ConfigurationProvider {
   public static censorKeys: { [workspace: string]: CensoringKeys[] } = {};
+  public static globalWorkspaceName = "global";
+  public static defaultWorkspaceName = "default";
   private static _config: WorkspaceConfiguration;
-  private static _globalWorkspaceName = "global";
-  private static _defaultWorkspaceName = "default";
   private static _userHome = env.appRoot;
 
   public static async init() {
@@ -145,12 +144,12 @@ export default class ConfigurationProvider {
       }
     }
     await this.updateConfig();
-    await this.loadCensoringConfigFile();
+    await this.loadCensoringConfigFiles();
   }
 
   public static async updateConfig() {
     ConfigurationProvider._config = workspace.getConfiguration("censitive");
-    ConfigurationProvider.censorKeys[ConfigurationProvider._defaultWorkspaceName] = (
+    ConfigurationProvider.censorKeys[ConfigurationProvider.defaultWorkspaceName] = (
       ((ConfigurationProvider._config as unknown) || defaults) as Configuration
     ).defaultCensoring?.map(({ exclude, ...options }) => {
       return "match" in options
@@ -164,14 +163,18 @@ export default class ConfigurationProvider {
     });
   }
 
-  public static async updateCensoringKeys(workspace: WorkspaceFolder | Uri, configFile?: Uri | null) {
-    const name = isWorkspaceFolder(workspace) ? workspace.name : ConfigurationProvider._globalWorkspaceName;
+  public static async updateCensoringKeys(
+    workspaceFolder: WorkspaceFolder | Uri | null,
+    configFile: Uri | null,
+    base: Uri | WorkspaceFolder | null = workspaceFolder
+  ) {
+    const name = base ? (isWorkspaceFolder(base) ? base.name : base.path) : ConfigurationProvider.globalWorkspaceName;
     if (!configFile) {
       return (ConfigurationProvider.censorKeys[name] = []);
     }
 
     try {
-      const content = await promisify(readFile)(configFile.fsPath);
+      const content = await workspace.fs.readFile(configFile);
       return (ConfigurationProvider.censorKeys[name] = content
         .toString()
         .split(/\r?\n/g)
@@ -181,14 +184,14 @@ export default class ConfigurationProvider {
           const [pattern, excludePattern] = patternRaw.replace(/\\:/g, ":").split(/(?<!\\)!/);
 
           const selector = pattern
-            ? isWorkspaceFolder(workspace)
-              ? { pattern: new RelativePattern(workspace, pattern.replace(/\\!/g, "!")) }
+            ? base
+              ? { pattern: new RelativePattern(base, pattern.replace(/\\!/g, "!")) }
               : pattern.replace(/\\!/g, "!")
             : null;
           const exclude =
             excludePattern &&
-            (isWorkspaceFolder(workspace)
-              ? { pattern: new RelativePattern(workspace, excludePattern.replace(/\\!/g, "!")) }
+            (base
+              ? { pattern: new RelativePattern(base, excludePattern.replace(/\\!/g, "!")) }
               : excludePattern.replace(/\\!/g, "!"));
           const keys = keyList
             .replace(/\\:/g, ":")
@@ -213,22 +216,73 @@ export default class ConfigurationProvider {
     }
   }
 
-  private static async loadCensoringConfigFile() {
+  private static async loadCensoringConfigFiles(path?: Uri) {
     const { stat } = workspace.fs;
     const workspaces = workspace.workspaceFolders || [];
-    for (const folder of workspaces) {
-      const [configFile] = await workspace.findFiles(new RelativePattern(folder, ".censitive"), null, 1);
-      await ConfigurationProvider.updateCensoringKeys(folder, configFile);
+    const insideWorkspace =
+      path &&
+      workspaces.some(({ uri }) => {
+        const relativePath = relative(uri.fsPath, path.fsPath);
+        return relativePath && !relativePath.startsWith("..") && !isAbsolute(relativePath);
+      });
+
+    if (path && insideWorkspace) {
+      // Workspace files are watched and updated on change
+      return;
+    } else if (path) {
+      // We must reload the configuration for non-workspace directories
+      // They are unwatched and opened on demand, caching would be inefficient
+      const parentDirectories = ConfigurationProvider.getParentDirectories(path);
+
+      await Promise.all(
+        parentDirectories.map(async (directory) => {
+          const censitiveFile = Uri.joinPath(directory, ".censitive");
+          const { size } = await new Promise<FileStat>((resolve, reject) =>
+            stat(censitiveFile).then(resolve, reject)
+          ).catch(() => ({ size: 0 }));
+
+          if (size > 0) {
+            await ConfigurationProvider.updateCensoringKeys(null, censitiveFile, directory);
+          }
+        })
+      );
+      return;
     }
+
+    for (const folder of workspaces) {
+      const configFiles = await workspace.findFiles(new RelativePattern(folder, "**/.censitive"));
+      await Promise.all(
+        configFiles.map((censitiveUri) => {
+          const base = censitiveUri.with({ path: censitiveUri.path.replace(/\/\.censitive$/, "") });
+          return ConfigurationProvider.updateCensoringKeys(folder, censitiveUri, base);
+        })
+      );
+    }
+
     if (ConfigurationProvider._userHome) {
       const globalConfigFile = Uri.joinPath(Uri.file(ConfigurationProvider._userHome), ".censitive");
       const { size } = await new Promise<FileStat>((resolve, reject) =>
         stat(globalConfigFile).then(resolve, reject)
       ).catch(() => ({ size: 0 }));
       if (size > 0) {
-        await ConfigurationProvider.updateCensoringKeys(globalConfigFile, globalConfigFile);
+        await ConfigurationProvider.updateCensoringKeys(null, globalConfigFile);
       }
     }
+  }
+
+  private static getParentDirectories(path: string | Uri, ignoreHome = false) {
+    const parentDirectories = [];
+    const userHomePath = Uri.file(ConfigurationProvider._userHome).fsPath;
+
+    let currentDirectory = typeof path === "string" ? path : path.fsPath;
+    while (currentDirectory !== dirname(currentDirectory)) {
+      if (!ignoreHome || currentDirectory !== userHomePath) {
+        parentDirectories.push(Uri.file(currentDirectory));
+      }
+      currentDirectory = dirname(currentDirectory);
+    }
+
+    return parentDirectories;
   }
 
   public get userHome(): string {
@@ -236,11 +290,11 @@ export default class ConfigurationProvider {
   }
 
   public get globalCensorKeys(): CensoringKeys[] {
-    return ConfigurationProvider.censorKeys[ConfigurationProvider._globalWorkspaceName] ?? [];
+    return ConfigurationProvider.censorKeys[ConfigurationProvider.globalWorkspaceName] ?? [];
   }
 
   public get defaultCensorKeys(): CensoringKeys[] {
-    return ConfigurationProvider.censorKeys[ConfigurationProvider._defaultWorkspaceName] ?? [];
+    return ConfigurationProvider.censorKeys[ConfigurationProvider.defaultWorkspaceName] ?? [];
   }
 
   public get hasGlobalCensorKeys(): boolean {
@@ -279,9 +333,10 @@ export default class ConfigurationProvider {
     );
   }
 
-  public isDocumentInCensorConfig(document: TextDocument): boolean {
-    const folder = workspace.getWorkspaceFolder(document.uri);
-    const allCensorKeys = this.getCensoringKeysForFolder(folder);
+  public async isDocumentInCensorConfig(document: TextDocument): Promise<boolean> {
+    const workspaceFolder = workspace.getWorkspaceFolder(document.uri);
+    const parentFolder = Uri.file(dirname(document.uri.fsPath));
+    const allCensorKeys = await this.getCensoringKeysForFolder(workspaceFolder, parentFolder);
     const censorKeys = allCensorKeys.filter<CensoringKeysWithSelector>(isCensoringKeyWithSelector);
     const ignoreKeys = allCensorKeys.filter<CensoringKeysIgnore>(isCensoringKeyIgnore);
 
@@ -306,9 +361,15 @@ export default class ConfigurationProvider {
     return false;
   }
 
-  public getCensoredKeys(document: TextDocument): (string | FencingPattern)[] {
-    const folder = workspace.getWorkspaceFolder(document.uri);
-    const censorKeys = this.getCensoringKeysForFolder(folder);
+  public isDocumentInWorkspace(document: TextDocument): boolean {
+    const workspaceFolder = workspace.getWorkspaceFolder(document.uri);
+    return !!workspaceFolder;
+  }
+
+  public async getCensoredKeys(document: TextDocument): Promise<(string | FencingPattern)[]> {
+    const workspaceFolder = workspace.getWorkspaceFolder(document.uri);
+    const parentFolder = Uri.file(dirname(document.uri.fsPath));
+    const censorKeys = await this.getCensoringKeysForFolder(workspaceFolder, parentFolder);
 
     if (censorKeys.length === 0) {
       return [];
@@ -319,24 +380,36 @@ export default class ConfigurationProvider {
     }, []);
   }
 
-  private getCensoringKeysForFolder(folder?: WorkspaceFolder): CensoringKeys[] {
+  private async getCensoringKeysForFolder(base?: WorkspaceFolder, subPath?: Uri): Promise<CensoringKeys[]> {
     const { mergeGlobalCensoring, mergeDefaultCensoring } = this.config;
-    const hasGlobalCensoring = this.hasGlobalCensorKeys;
-    const hasLocalCensoring = folder && ConfigurationProvider.censorKeys[folder.name];
 
-    const censorKeyGroups = [
-      mergeGlobalCensoring || !hasLocalCensoring ? this.globalCensorKeys : [],
-      mergeDefaultCensoring || (!hasLocalCensoring && !hasGlobalCensoring) ? this.defaultCensorKeys : [],
-    ];
-    const censorKeys = this.mergeCensoringKeys(
-      (folder && ConfigurationProvider.censorKeys[folder.name]) ?? [],
-      ...censorKeyGroups
-    );
+    const baseCensoringKeys = base ? ConfigurationProvider.censorKeys[base.name] : undefined;
+    const censorKeyGroups = [];
+
+    if (subPath && !base) {
+      // Load config for files outside the workspace
+      const parentDirectories = ConfigurationProvider.getParentDirectories(subPath);
+      await ConfigurationProvider.loadCensoringConfigFiles(subPath);
+
+      for (const directory of parentDirectories) {
+        if (ConfigurationProvider.censorKeys[directory.path]) {
+          censorKeyGroups.push(ConfigurationProvider.censorKeys[directory.path]);
+        }
+      }
+    }
+
+    if ((mergeGlobalCensoring || !baseCensoringKeys) && this.hasGlobalCensorKeys) {
+      censorKeyGroups.push(this.globalCensorKeys);
+    } else if (mergeDefaultCensoring || !baseCensoringKeys) {
+      censorKeyGroups.push(this.defaultCensorKeys);
+    }
+
+    const censorKeys = this.mergeCensoringKeys(baseCensoringKeys ?? [], ...censorKeyGroups);
 
     return censorKeys.map((censorKey) => {
       let { selector, exclude } = censorKey;
-      selector = selector && this.extendGlobSelector(selector, folder);
-      exclude = exclude && this.extendGlobSelector(exclude, folder);
+      selector = selector && this.extendGlobSelector(selector, base);
+      exclude = exclude && this.extendGlobSelector(exclude, base);
 
       return { ...censorKey, selector, exclude } as CensoringKeys;
     });
