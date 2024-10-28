@@ -406,7 +406,8 @@ export default class ConfigurationProvider {
 
     if ((mergeGlobalCensoring || !baseCensoringKeys) && this.hasGlobalCensorKeys) {
       censorKeyGroups.push(this.globalCensorKeys);
-    } else if (mergeDefaultCensoring || !baseCensoringKeys) {
+    }
+    if (mergeDefaultCensoring || (!baseCensoringKeys && !this.hasGlobalCensorKeys)) {
       censorKeyGroups.push(this.defaultCensorKeys);
     }
 
