@@ -1,3 +1,11 @@
+## [1.5.1](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.5.0...v1.5.1) (2024-10-28)
+
+
+### Bug Fixes
+
+* always use default censoring if enabled ([ddbe0dd](https://github.com/1nVitr0/plugin-vscode-censitive/commit/ddbe0dd8e05cfe3afa50c13f8a747c3b81ed3879))
+* init and watch only config file in home directory ([8b3d2e8](https://github.com/1nVitr0/plugin-vscode-censitive/commit/8b3d2e8920038a1e7c16dc3591527c2239b895f1))
+
 # [1.5.0](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.4.1...v1.5.0) (2024-10-11)
 
 
