@@ -18,7 +18,7 @@ import {
 import CensoringCodeLensProvider from "./providers/CensoringCodeLensProvider";
 import CensoringProvider from "./providers/CensoringProvider";
 import ConfigurationProvider, { Configuration } from "./providers/ConfigurationProvider";
-import { dirname } from "path";
+import { dirname, join } from "path";
 
 let configurationProvider = new ConfigurationProvider();
 let censoringCodeLensProvider: CensoringCodeLensProvider;
@@ -27,8 +27,6 @@ let instanceMap = new Map<string, CensoringProvider>();
 export async function activate(context: ExtensionContext) {
   await ConfigurationProvider.init();
   const { config, userHome } = configurationProvider;
-
-  onVisibleEditorsChanged(window.visibleTextEditors);
 
   context.subscriptions.push(
     languages.registerCodeLensProvider(
@@ -65,14 +63,17 @@ export async function activate(context: ExtensionContext) {
     createConfigWatcher()
   );
 
-  if (userHome) {
-    context.subscriptions.push(createConfigWatcher(Uri.file(userHome)));
-  }
-
   window.onDidChangeVisibleTextEditors(onVisibleEditorsChanged, null, context.subscriptions);
   workspace.onDidCloseTextDocument(onCloseDocument, null, context.subscriptions);
   workspace.onDidChangeConfiguration(onConfigurationChange, null, context.subscriptions);
   extensions.onDidChange(onConfigurationChange, null, context.subscriptions);
+
+  if (userHome) {
+    context.subscriptions.push(createConfigWatcher(userHome));
+    await onCensorConfigChanged(Uri.file(join(userHome, ".censitive")));
+  }
+
+  await onVisibleEditorsChanged(window.visibleTextEditors);
 }
 
 export function deactivate() {
@@ -80,10 +81,14 @@ export function deactivate() {
   instanceMap.clear();
 }
 
-function createConfigWatcher(folder?: Uri) {
-  const configWatcher = workspace.createFileSystemWatcher(
-    folder ? new RelativePattern(folder, ".censitive") : "**/.censitive"
-  );
+function createConfigWatcher(folder?: Uri | WorkspaceFolder | string) {
+  const pattern =
+    typeof folder === "string"
+      ? new RelativePattern(Uri.file(join(folder, ".censitive")), "*")
+      : folder
+      ? new RelativePattern(folder, ".censitive")
+      : "**/.censitive";
+  const configWatcher = workspace.createFileSystemWatcher(pattern);
   configWatcher.onDidCreate(onCensorConfigChanged);
   configWatcher.onDidChange(onCensorConfigChanged);
   configWatcher.onDidDelete(onCensorConfigChanged);
@@ -123,15 +128,20 @@ async function onConfigurationChange() {
 }
 
 async function onCensorConfigChanged(uri: Uri) {
+  const { userHome } = configurationProvider;
   const workspaceFolder = workspace.getWorkspaceFolder(uri) ?? null;
   const parentFolder = Uri.file(dirname(uri.fsPath));
 
   await ConfigurationProvider.updateCensoringKeys(
     workspaceFolder,
     uri,
-    parentFolder.toString() === workspaceFolder?.uri.toString() ? workspaceFolder : parentFolder
+    parentFolder.toString() === workspaceFolder?.uri.toString()
+      ? workspaceFolder
+      : parentFolder.fsPath === userHome
+      ? null
+      : parentFolder
   );
-  onVisibleEditorsChanged(window.visibleTextEditors, true);
+  await onVisibleEditorsChanged(window.visibleTextEditors, true);
 }
 
 function onCloseDocument(document: TextDocument) {
