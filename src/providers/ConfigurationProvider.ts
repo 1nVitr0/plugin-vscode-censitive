@@ -95,6 +95,8 @@ export const defaults: Configuration = {
   assignmentRegex: {
     default: "[\\t ]*[:=][=>]?[\\t ]*",
     yaml: "[\\t ]*:[\\t ]*(?!>|\\|)",
+    cpp: "(?:[\\t ]*=[\\t ]*|(?<=^#define[\\t ]+.+)[\\t ]+)",
+    c: "(?:[\\t ]*=[\\t ]*|(?<=^#define[\\t ]+.+)[\\t ]+)",
   },
   censoring: {
     color: "theme.editorInfo.background",
