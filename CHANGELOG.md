@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.5.1...v1.5.2) (2024-11-03)
+
+
+### Bug Fixes
+
+* support censoring for `#define` in cpp / c ([143776d](https://github.com/1nVitr0/plugin-vscode-censitive/commit/143776d5d92265f088f8ffd910050d3c2494d36b))
+
 ## [1.5.1](https://github.com/1nVitr0/plugin-vscode-censitive/compare/v1.5.0...v1.5.1) (2024-10-28)
 
 
