@@ -84,7 +84,9 @@
         "censitive.assignmentRegex": {
           "default": {
             "default": "[\\t ]*[:=][=>]?[\\t ]*",
-            "yaml": "[\\t ]*:[\\t ]*(?!>|\\|)"
+            "yaml": "[\\t ]*:[\\t ]*(?!>|\\|)",
+            "cpp": "(?:[\\t ]*=[\\t ]*|(?<=^#define[\\t ]+.+)[\\t ]+)",
+            "c": "(?:[\\t ]*=[\\t ]*|(?<=^#define[\\t ]+.+)[\\t ]+)"
           },
           "description": "Regex used to detect assignments",
           "type": "object",
