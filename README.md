@@ -26,7 +26,7 @@ Censitive censors all your sensitive information, such as database logins, token
 ## Features
 
 The extension uses decorations to block out sensitive information as set in a `.censitive` file in a parent directory or in your home directory.
-If both files are present and `censtitive.mergeGlobalCensoring` is enabled, their censoring will be merged.
+If both files are present and `censitive.mergeGlobalCensoring` is enabled, their censoring will be merged.
 
 When active, the extension will censor all content set in `.censitive` file(s) by using a key-value approach.
 This means, the `.censitive` file specifies key regexes and the extension automatically finds values assigned to these keys.
@@ -40,13 +40,13 @@ Two code actions "Copy to Clipboard" and "Show Censored Text" are provided for c
 
 This extension has the following settings:
 
-* `censtitive.enable`: enable/disable this extension
+* `censitive.enable`: enable/disable this extension
 * `censitive.codeLanguages`: List of code languages that conform to standard code syntax (e.g. `c`, `cpp`, `javascript`, `python`)
 * `censitive.assignmentRegex`: Regex used to detect assignments, usually begin and end with `[\\t ]` to capture surrounding spaces
-* `censtitive.mergeGlobalCensoring`: merge configuration in your home directory with the workspace settings
+* `censitive.mergeGlobalCensoring`: merge configuration in your home directory with the workspace settings
 * `censitive.useFastModeMinLines`: above this line threshold the document is censored twice: once for the visible range and once for the entire document. This speeds up censoring marginally, but can still be slow
-* `censtitive.censor`: Visual settings used for censoring
-* `censtitive.showTimeoutSeconds`: Controls the time the password is shown after clicking on 'Show Censored Text'
+* `censitive.censoring`: Visual settings used for censoring
+* `censitive.showTimeoutSeconds`: Controls the time the password is shown after clicking on 'Show Censored Text'
 * `censitive.defaultCensoring`: Default censoring config, if no `.censitive` file is present in the workspace or the user's home directory
 * `censitive.mergeDefaultCensoring`: merge default configuration with all .censitive configurations
 
